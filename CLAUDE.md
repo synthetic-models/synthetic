@@ -185,3 +185,88 @@ Throughout the codebase, parameters and values can be specified as:
 - **Dicts**: Name-based matching (e.g., `{'Vmax': 100.0, 'Km': 50.0}`)
 
 Dicts are safer and more readable, especially for reactions with many parameters.
+
+## Kinetic Parameter Tuning
+
+The `utils.kinetic_tuner` module provides `KineticParameterTuner` for generating kinetic parameters that ensure robust signal propagation through hierarchical networks. This tuner solves full nonlinear kinetic equations to achieve target active percentages.
+
+### Using KineticParameterTuner
+
+```python
+from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
+from synthetic.Specs.Drug import Drug
+from synthetic.utils.kinetic_tuner import KineticParameterTuner
+
+# 1. Create and generate specification
+spec = DegreeInteractionSpec(degree_cascades=[3, 6, 15, 25])
+spec.generate_specifications(random_seed=42, feedback_density=0.5)
+
+# 2. Add drugs (optional - must target degree 1 R species)
+drug_d = Drug(
+    name="D",
+    start_time=5000.0,
+    default_value=100.0,
+    regulation=["R1_1", "R1_2", "R1_3"],
+    regulation_type=["down", "down", "down"],
+)
+spec.add_drug(drug_d)
+
+# 3. Generate model with initial value ranges
+model = spec.generate_network(
+    network_name="MultiDegree_Network",
+    mean_range_species=(50, 150),      # Initial concentrations
+    rangeScale_params=(0.8, 1.2),       # ±20% variation
+    rangeMultiplier_params=(0.9, 1.1),    # Small additional variation
+    random_seed=42,
+)
+
+# 4. Precompile model (required before tuning)
+model.precompile()
+
+# 5. Tune kinetic parameters for target active percentages
+tuner = KineticParameterTuner(model, random_seed=42)
+updated_params = tuner.generate_parameters(
+    active_percentage_range=(0.3, 0.7),  # Target 30-70% active states
+    X_total_multiplier=5.0,                # Km_b = X_total × 5.0
+    ki_val=100.0,                           # Constant Ki for all inhibitors
+    v_max_f_random_range=(5.0, 10.0),     # Total forward Vmax range
+)
+
+# 6. Apply tuned parameters to model
+for param_name, value in updated_params.items():
+    model.set_parameter(param_name, value)
+
+# 7. Get target concentrations (for validation)
+target_concentrations = tuner.get_target_concentrations()
+for species_name, concentration in target_concentrations.items():
+    print(f"Target concentration for {species_name}: {concentration:.3f}")
+
+# 8. Access regulator-parameter mappings
+regulator_parameter_map = model.get_regulator_parameter_map()
+drug_map = regulator_parameter_map.get("D", {})
+for drug_param in drug_map:
+    print(f"Drug D regulates parameter: {drug_param}")
+    model.set_parameter(drug_param, 10.0)  # Override for drug effect
+```
+
+### Tuner Algorithm
+
+The `KineticParameterTuner` solves full nonlinear kinetic equations:
+
+1. **Target Assignment**: For each species X, randomly assign active percentage p ∈ `active_percentage_range`
+2. **Compute Target**: Target active concentration `[X_a] = p × X_total`
+3. **Parameter Solving**: For each activated species Xa:
+   - Identify forward parameters (kc_i, Ki values) and backward parameters (vmax_b)
+   - Get regulator active concentrations from target concentrations
+   - Solve: `p = (Σ kc_i × [Y_i_a]) / (Σ kc_i × [Y_i_a] + vmax_b)`
+   - Set individual kc_i values for equal contribution
+   - Set km_b = X_total × X_total_multiplier
+   - Set km_f = km_b / (1 + Σ [Y_inhibitor_a]/ki_val) for competitive inhibition
+   - Set ki = ki_val (constant)
+
+### Complexity
+
+- **Time**: O(n × m) where n = activated species, m = average regulators per species
+- **Space**: O(n + p) where n = species, p = total parameters
+
+The algorithm processes each species independently once all target concentrations are known. Drug concentrations are not considered in the tuning process.
