@@ -1,0 +1,963 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level2" level="2" version="1">
+  <model name="PEAK3-Final-1">
+    <listOfCompartments>
+      <compartment id="rootCompartment" name="rootCompartment" spatialDimensions="3" size="1" constant="true"/>
+    </listOfCompartments>
+    <listOfSpecies>
+      <species id="EGFR" name="EGFR" compartment="rootCompartment" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="uEGFR" name="uEGFR" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="pEGFR" name="pEGFR" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="SFK" name="SFK" compartment="rootCompartment" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="aSFK" name="aSFK" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Shc" name="Shc" compartment="rootCompartment" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="pShc" name="pShc" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="PEAK3" name="PEAK3" compartment="rootCompartment" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="PEAK3d" name="PEAK3d" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2" name="Grb2" compartment="rootCompartment" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2uPEAK3d" name="Grb2uPEAK3d" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Cbl" name="Cbl" compartment="rootCompartment" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="PEAK3duCbl" name="PEAK3duCbl" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="PYK2" name="PYK2" compartment="rootCompartment" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="PEAK3duPYK2" name="PEAK3duPYK2" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="CrkII" name="CrkII" compartment="rootCompartment" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="PEAK3duCrkII" name="PEAK3duCrkII" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="ASAP1" name="ASAP1" compartment="rootCompartment" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="PEAK3duASAP1" name="PEAK3duASAP1" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2upPEAK3d" name="Grb2upPEAK3d" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="PTPN12" name="PTPN12" compartment="rootCompartment" initialAmount="100" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="PTPN12upShc" name="PTPN12upShc" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2uPEAK3duPTPN12upShc" name="Grb2uPEAK3duPTPN12upShc" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2upPEAK3duPTPN12upShc" name="Grb2upPEAK3duPTPN12upShc" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2upPEAK3duASAP1" name="Grb2upPEAK3duASAP1" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2upPEAK3duCbl" name="Grb2upPEAK3duCbl" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2upPEAK3duPYK2" name="Grb2upPEAK3duPYK2" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2upPEAK3duCrkII" name="Grb2upPEAK3duCrkII" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2uPEAK3duCbl" name="Grb2uPEAK3duCbl" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2uPEAK3duPYK2" name="Grb2uPEAK3duPYK2" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2uPEAK3duCrkII" name="Grb2uPEAK3duCrkII" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+      <species id="Grb2uPEAK3duASAP1" name="Grb2uPEAK3duASAP1" compartment="rootCompartment" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+    </listOfSpecies>
+    <listOfParameters>
+      <parameter id="Vmax1b" name="Vmax1b" value="10" constant="true"/>
+      <parameter id="Km1f" name="Km1f" value="100" constant="true"/>
+      <parameter id="Km1b" name="Km1b" value="100" constant="true"/>
+      <parameter id="Kc1f1" name="Kc1f1" value="0.1" constant="true"/>
+      <parameter id="Kc1f2" name="Kc1f2" value="0.1" constant="true"/>
+      <parameter id="Ki1f1" name="Ki1f1" value="0.01" constant="true"/>
+      <parameter id="Ki1f2" name="Ki1f2" value="0.01" constant="true"/>
+      <parameter id="Vmax2b" name="Vmax2b" value="10" constant="true"/>
+      <parameter id="Km2f" name="Km2f" value="100" constant="true"/>
+      <parameter id="Km2b" name="Km2b" value="100" constant="true"/>
+      <parameter id="Kc2f1" name="Kc2f1" value="100" constant="true"/>
+      <parameter id="Vmax3b" name="Vmax3b" value="10" constant="true"/>
+      <parameter id="Km3f" name="Km3f" value="100" constant="true"/>
+      <parameter id="Km3b" name="Km3b" value="100" constant="true"/>
+      <parameter id="Kc3f1" name="Kc3f1" value="1" constant="true"/>
+      <parameter id="Vmax4b" name="Vmax4b" value="10" constant="true"/>
+      <parameter id="Km4f" name="Km4f" value="100" constant="true"/>
+      <parameter id="Km4b" name="Km4b" value="100" constant="true"/>
+      <parameter id="Kc4f1" name="Kc4f1" value="1" constant="true"/>
+      <parameter id="Ka5" name="Ka5" value="0.001" constant="true"/>
+      <parameter id="Kd5" name="Kd5" value="0.01" constant="true"/>
+      <parameter id="Ka6" name="Ka6" value="0.001" constant="true"/>
+      <parameter id="Kd6" name="Kd6" value="0.01" constant="true"/>
+      <parameter id="Ka7" name="Ka7" value="0.01" constant="true"/>
+      <parameter id="Kd7" name="Kd7" value="0.01" constant="true"/>
+      <parameter id="Ka8" name="Ka8" value="0.001" constant="true"/>
+      <parameter id="Kd8" name="Kd8" value="0.01" constant="true"/>
+      <parameter id="Ka9" name="Ka9" value="0.001" constant="true"/>
+      <parameter id="Kd9" name="Kd9" value="0.01" constant="true"/>
+      <parameter id="Ka10" name="Ka10" value="1e-005" constant="true"/>
+      <parameter id="Kd10" name="Kd10" value="0.0001" constant="true"/>
+      <parameter id="Vmax11b" name="Vmax11b" value="10" constant="true"/>
+      <parameter id="Km11f" name="Km11f" value="100" constant="true"/>
+      <parameter id="Km11b" name="Km11b" value="100" constant="true"/>
+      <parameter id="Kc11f1" name="Kc11f1" value="0.1" constant="true"/>
+      <parameter id="Ka12" name="Ka12" value="1" constant="true"/>
+      <parameter id="Kd12" name="Kd12" value="100" constant="true"/>
+      <parameter id="Ka13" name="Ka13" value="1" constant="true"/>
+      <parameter id="Kd13" name="Kd13" value="100" constant="true"/>
+      <parameter id="Ka14" name="Ka14" value="1" constant="true"/>
+      <parameter id="Kd14" name="Kd14" value="100" constant="true"/>
+      <parameter id="Vmax15f" name="Vmax15f" value="10" constant="true"/>
+      <parameter id="Vmax15b" name="Vmax15b" value="10" constant="true"/>
+      <parameter id="Km15f" name="Km15f" value="100" constant="true"/>
+      <parameter id="Km15b" name="Km15b" value="100" constant="true"/>
+      <parameter id="Ka16" name="Ka16" value="0.001" constant="true"/>
+      <parameter id="Kd16" name="Kd16" value="0.01" constant="true"/>
+      <parameter id="Ka17" name="Ka17" value="0.001" constant="true"/>
+      <parameter id="Kd17" name="Kd17" value="0.01" constant="true"/>
+      <parameter id="Ka18" name="Ka18" value="0.001" constant="true"/>
+      <parameter id="Kd18" name="Kd18" value="0.01" constant="true"/>
+      <parameter id="Ka19" name="Ka19" value="0.01" constant="true"/>
+      <parameter id="Kd19" name="Kd19" value="0.01" constant="true"/>
+      <parameter id="Kdeg20" name="Kdeg20" value="0.01" constant="true"/>
+      <parameter id="Ksyn21" name="Ksyn21" value="0.01" constant="true"/>
+      <parameter id="Kdeg22" name="Kdeg22" value="0.01" constant="true"/>
+      <parameter id="Kdeg23" name="Kdeg23" value="0.01" constant="true"/>
+      <parameter id="Ka24" name="Ka24" value="0.01" constant="true"/>
+      <parameter id="Kd24" name="Kd24" value="0.01" constant="true"/>
+      <parameter id="Ka25" name="Ka25" value="0.001" constant="true"/>
+      <parameter id="Kd25" name="Kd25" value="0.01" constant="true"/>
+      <parameter id="Ka26" name="Ka26" value="0.001" constant="true"/>
+      <parameter id="Kd26" name="Kd26" value="0.01" constant="true"/>
+      <parameter id="Ka27" name="Ka27" value="1e-005" constant="true"/>
+      <parameter id="Kd27" name="Kd27" value="0.0001" constant="true"/>
+      <parameter id="EGF" name="EGF" value="8.33" constant="true"/>
+      <parameter id="EGF_on" name="EGF_on" value="5000" constant="true"/>
+      <parameter id="bindedASAP1" name="bindedASAP1" value="0" constant="false"/>
+      <parameter id="bindedCbl" name="bindedCbl" value="0" constant="false"/>
+      <parameter id="bindedCrkII" name="bindedCrkII" value="0" constant="false"/>
+      <parameter id="bindedPYK2" name="bindedPYK2" value="0" constant="false"/>
+      <parameter id="bindedGrb2" name="bindedGrb2" value="0" constant="false"/>
+      <parameter id="bindedpShc" name="bindedpShc" value="0" constant="false"/>
+      <parameter id="EGF0" name="EGF0" value="0" constant="false"/>
+    </listOfParameters>
+    <listOfRules>
+      <assignmentRule variable="bindedASAP1">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <plus/>
+            <ci> Grb2uPEAK3duASAP1 </ci>
+            <ci> PEAK3duASAP1 </ci>
+            <ci> Grb2upPEAK3duASAP1 </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="bindedCbl">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <plus/>
+            <ci> PEAK3duCbl </ci>
+            <ci> Grb2uPEAK3duCbl </ci>
+            <ci> Grb2upPEAK3duCbl </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="bindedCrkII">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <plus/>
+            <ci> PEAK3duCrkII </ci>
+            <ci> Grb2uPEAK3duCrkII </ci>
+            <ci> Grb2upPEAK3duCrkII </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="bindedPYK2">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <plus/>
+            <ci> PEAK3duPYK2 </ci>
+            <ci> Grb2uPEAK3duPYK2 </ci>
+            <ci> Grb2upPEAK3duPYK2 </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="bindedGrb2">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <plus/>
+            <ci> Grb2uPEAK3d </ci>
+            <ci> Grb2uPEAK3duASAP1 </ci>
+            <ci> Grb2uPEAK3duCbl </ci>
+            <ci> Grb2uPEAK3duCrkII </ci>
+            <ci> Grb2uPEAK3duPTPN12upShc </ci>
+            <ci> Grb2uPEAK3duPYK2 </ci>
+            <ci> Grb2upPEAK3d </ci>
+            <ci> Grb2upPEAK3duASAP1 </ci>
+            <ci> Grb2upPEAK3duCbl </ci>
+            <ci> Grb2upPEAK3duCrkII </ci>
+            <ci> Grb2upPEAK3duPTPN12upShc </ci>
+            <ci> Grb2upPEAK3duPYK2 </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="bindedpShc">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <plus/>
+            <ci> Grb2uPEAK3duPTPN12upShc </ci>
+            <ci> Grb2upPEAK3duPTPN12upShc </ci>
+          </apply>
+        </math>
+      </assignmentRule>
+      <assignmentRule variable="EGF0">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <times/>
+            <ci> EGF </ci>
+            <piecewise>
+              <piece>
+                <cn type="integer"> 1 </cn>
+                <apply>
+                  <geq/>
+                  <csymbol encoding="text" definitionURL="http://www.sbml.org/sbml/symbols/time"> time </csymbol>
+                  <ci> EGF_on </ci>
+                </apply>
+              </piece>
+              <otherwise>
+                <cn type="integer"> 0 </cn>
+              </otherwise>
+            </piecewise>
+          </apply>
+        </math>
+      </assignmentRule>
+    </listOfRules>
+    <listOfReactions>
+      <reaction id="R1" name="R1" reversible="false">
+        <listOfReactants>
+          <speciesReference species="EGFR" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="uEGFR" stoichiometry="1"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="Grb2uPEAK3duCbl"/>
+          <modifierSpeciesReference species="Grb2uPEAK3duPYK2"/>
+          <modifierSpeciesReference species="Grb2upPEAK3duCbl"/>
+          <modifierSpeciesReference species="Grb2upPEAK3duPYK2"/>
+          <modifierSpeciesReference species="PEAK3duCbl"/>
+          <modifierSpeciesReference species="PEAK3duPYK2"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <apply>
+                <divide/>
+                <apply>
+                  <times/>
+                  <ci> Kc1f1 </ci>
+                  <apply>
+                    <plus/>
+                    <ci> PEAK3duCbl </ci>
+                    <ci> Grb2upPEAK3duCbl </ci>
+                    <ci> Grb2uPEAK3duCbl </ci>
+                  </apply>
+                  <ci> EGFR </ci>
+                </apply>
+                <apply>
+                  <plus/>
+                  <ci> Km1f </ci>
+                  <ci> EGFR </ci>
+                </apply>
+              </apply>
+              <apply>
+                <plus/>
+                <cn type="integer"> 1 </cn>
+                <apply>
+                  <times/>
+                  <ci> Ki1f1 </ci>
+                  <apply>
+                    <plus/>
+                    <ci> PEAK3duPYK2 </ci>
+                    <ci> Grb2upPEAK3duPYK2 </ci>
+                    <ci> Grb2uPEAK3duPYK2 </ci>
+                  </apply>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R2" name="R2" reversible="true">
+        <listOfReactants>
+          <speciesReference species="EGFR" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="pEGFR" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <divide/>
+                <apply>
+                  <times/>
+                  <ci> Kc2f1 </ci>
+                  <ci> EGF0 </ci>
+                  <ci> EGFR </ci>
+                </apply>
+                <apply>
+                  <plus/>
+                  <ci> Km2f </ci>
+                  <ci> EGFR </ci>
+                </apply>
+              </apply>
+              <apply>
+                <divide/>
+                <apply>
+                  <times/>
+                  <ci> Vmax2b </ci>
+                  <ci> pEGFR </ci>
+                </apply>
+                <apply>
+                  <plus/>
+                  <ci> Km2b </ci>
+                  <ci> pEGFR </ci>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R3" name="R3" reversible="true">
+        <listOfReactants>
+          <speciesReference species="SFK" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="aSFK" stoichiometry="1"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="pEGFR"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <divide/>
+                <apply>
+                  <times/>
+                  <ci> Kc3f1 </ci>
+                  <ci> pEGFR </ci>
+                  <ci> SFK </ci>
+                </apply>
+                <apply>
+                  <plus/>
+                  <ci> Km3f </ci>
+                  <ci> SFK </ci>
+                </apply>
+              </apply>
+              <apply>
+                <divide/>
+                <apply>
+                  <times/>
+                  <ci> Vmax3b </ci>
+                  <ci> aSFK </ci>
+                </apply>
+                <apply>
+                  <plus/>
+                  <ci> Km3b </ci>
+                  <ci> aSFK </ci>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R4" name="R4" reversible="true">
+        <listOfReactants>
+          <speciesReference species="Shc" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="pShc" stoichiometry="1"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="pEGFR"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <divide/>
+                <apply>
+                  <times/>
+                  <ci> Kc4f1 </ci>
+                  <ci> pEGFR </ci>
+                  <ci> Shc </ci>
+                </apply>
+                <apply>
+                  <plus/>
+                  <ci> Km4f </ci>
+                  <ci> Shc </ci>
+                </apply>
+              </apply>
+              <apply>
+                <divide/>
+                <apply>
+                  <times/>
+                  <ci> Vmax4b </ci>
+                  <ci> pShc </ci>
+                </apply>
+                <apply>
+                  <plus/>
+                  <ci> Km4b </ci>
+                  <ci> pShc </ci>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R5" name="R5" reversible="true">
+        <listOfReactants>
+          <speciesReference species="PEAK3" stoichiometry="2"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="PEAK3d" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka5 </ci>
+                <ci> PEAK3 </ci>
+                <ci> PEAK3 </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd5 </ci>
+                <ci> PEAK3d </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R6" name="R6" reversible="true">
+        <listOfReactants>
+          <speciesReference species="PEAK3d" stoichiometry="1"/>
+          <speciesReference species="Grb2" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2uPEAK3d" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka6 </ci>
+                <ci> Grb2 </ci>
+                <ci> PEAK3d </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd6 </ci>
+                <ci> Grb2uPEAK3d </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R7" name="R7" reversible="true">
+        <listOfReactants>
+          <speciesReference species="PEAK3d" stoichiometry="1"/>
+          <speciesReference species="Cbl" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="PEAK3duCbl" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka7 </ci>
+                <ci> PEAK3d </ci>
+                <ci> Cbl </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd7 </ci>
+                <ci> PEAK3duCbl </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R8" name="R8" reversible="true">
+        <listOfReactants>
+          <speciesReference species="PEAK3d" stoichiometry="1"/>
+          <speciesReference species="PYK2" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="PEAK3duPYK2" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka8 </ci>
+                <ci> PEAK3d </ci>
+                <ci> PYK2 </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd8 </ci>
+                <ci> PEAK3duPYK2 </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R9" name="R9" reversible="true">
+        <listOfReactants>
+          <speciesReference species="PEAK3d" stoichiometry="1"/>
+          <speciesReference species="CrkII" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="PEAK3duCrkII" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka9 </ci>
+                <ci> PEAK3d </ci>
+                <ci> CrkII </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd9 </ci>
+                <ci> PEAK3duCrkII </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R10" name="R10" reversible="true">
+        <listOfReactants>
+          <speciesReference species="PEAK3d" stoichiometry="1"/>
+          <speciesReference species="ASAP1" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="PEAK3duASAP1" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka10 </ci>
+                <ci> PEAK3d </ci>
+                <ci> ASAP1 </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd10 </ci>
+                <ci> PEAK3duASAP1 </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R11" name="R11" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Grb2uPEAK3d" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2upPEAK3d" stoichiometry="1"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="aSFK"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> Kc11f1 </ci>
+                <ci> aSFK </ci>
+                <ci> Grb2uPEAK3d </ci>
+              </apply>
+              <apply>
+                <plus/>
+                <ci> Km11f </ci>
+                <ci> Grb2uPEAK3d </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R12" name="R12" reversible="true">
+        <listOfReactants>
+          <speciesReference species="pShc" stoichiometry="1"/>
+          <speciesReference species="PTPN12" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="PTPN12upShc" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka12 </ci>
+                <ci> PTPN12 </ci>
+                <ci> pShc </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd12 </ci>
+                <ci> PTPN12upShc </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R13" name="R13" reversible="true">
+        <listOfReactants>
+          <speciesReference species="Grb2uPEAK3d" stoichiometry="1"/>
+          <speciesReference species="PTPN12upShc" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2uPEAK3duPTPN12upShc" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka13 </ci>
+                <ci> Grb2uPEAK3d </ci>
+                <ci> PTPN12upShc </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd13 </ci>
+                <ci> Grb2uPEAK3duPTPN12upShc </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R14" name="R14" reversible="true">
+        <listOfReactants>
+          <speciesReference species="Grb2upPEAK3d" stoichiometry="1"/>
+          <speciesReference species="PTPN12upShc" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2upPEAK3duPTPN12upShc" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka14 </ci>
+                <ci> Grb2upPEAK3d </ci>
+                <ci> PTPN12upShc </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd14 </ci>
+                <ci> Grb2upPEAK3duPTPN12upShc </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R15" name="R15" reversible="false">
+        <listOfReactants>
+          <speciesReference species="Grb2upPEAK3duPTPN12upShc" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2uPEAK3duPTPN12upShc" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> Vmax15f </ci>
+                <ci> Grb2upPEAK3duPTPN12upShc </ci>
+              </apply>
+              <apply>
+                <plus/>
+                <ci> Km15f </ci>
+                <ci> Grb2upPEAK3duPTPN12upShc </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R16" name="R16" reversible="true">
+        <listOfReactants>
+          <speciesReference species="ASAP1" stoichiometry="1"/>
+          <speciesReference species="Grb2upPEAK3d" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2upPEAK3duASAP1" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka16 </ci>
+                <ci> ASAP1 </ci>
+                <ci> Grb2upPEAK3d </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd16 </ci>
+                <ci> Grb2upPEAK3duASAP1 </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R17" name="R17" reversible="true">
+        <listOfReactants>
+          <speciesReference species="Cbl" stoichiometry="1"/>
+          <speciesReference species="Grb2upPEAK3d" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2upPEAK3duCbl" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka17 </ci>
+                <ci> Grb2upPEAK3d </ci>
+                <ci> Cbl </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd17 </ci>
+                <ci> Grb2upPEAK3duCbl </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R18" name="R18" reversible="true">
+        <listOfReactants>
+          <speciesReference species="PYK2" stoichiometry="1"/>
+          <speciesReference species="Grb2upPEAK3d" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2upPEAK3duPYK2" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka18 </ci>
+                <ci> Grb2upPEAK3d </ci>
+                <ci> PYK2 </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd18 </ci>
+                <ci> Grb2upPEAK3duPYK2 </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R19" name="R19" reversible="true">
+        <listOfReactants>
+          <speciesReference species="CrkII" stoichiometry="1"/>
+          <speciesReference species="Grb2upPEAK3d" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2upPEAK3duCrkII" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka19 </ci>
+                <ci> Grb2upPEAK3d </ci>
+                <ci> CrkII </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd19 </ci>
+                <ci> Grb2upPEAK3duCrkII </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R20" name="R20" reversible="false">
+        <listOfReactants>
+          <speciesReference species="uEGFR" stoichiometry="1"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> Kdeg20 </ci>
+              <ci> uEGFR </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R21" name="R21" reversible="false">
+        <listOfProducts>
+          <speciesReference species="EGFR" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <ci> Ksyn21 </ci>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R22" name="R22" reversible="false">
+        <listOfReactants>
+          <speciesReference species="EGFR" stoichiometry="1"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> Kdeg22 </ci>
+              <ci> EGFR </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R23" name="R23" reversible="false">
+        <listOfReactants>
+          <speciesReference species="pEGFR" stoichiometry="1"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> Kdeg23 </ci>
+              <ci> pEGFR </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R24" name="R24" reversible="true">
+        <listOfReactants>
+          <speciesReference species="Grb2uPEAK3d" stoichiometry="1"/>
+          <speciesReference species="Cbl" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2uPEAK3duCbl" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka24 </ci>
+                <ci> Grb2uPEAK3d </ci>
+                <ci> Cbl </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd24 </ci>
+                <ci> Grb2uPEAK3duCbl </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R25" name="R25" reversible="true">
+        <listOfReactants>
+          <speciesReference species="Grb2uPEAK3d" stoichiometry="1"/>
+          <speciesReference species="PYK2" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2uPEAK3duPYK2" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka25 </ci>
+                <ci> Grb2uPEAK3d </ci>
+                <ci> PYK2 </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd25 </ci>
+                <ci> Grb2uPEAK3duPYK2 </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R26" name="R26" reversible="true">
+        <listOfReactants>
+          <speciesReference species="Grb2uPEAK3d" stoichiometry="1"/>
+          <speciesReference species="CrkII" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2uPEAK3duCrkII" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka26 </ci>
+                <ci> Grb2uPEAK3d </ci>
+                <ci> CrkII </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd26 </ci>
+                <ci> Grb2uPEAK3duCrkII </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="R27" name="R27" reversible="true">
+        <listOfReactants>
+          <speciesReference species="Grb2uPEAK3d" stoichiometry="1"/>
+          <speciesReference species="ASAP1" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Grb2uPEAK3duASAP1" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <minus/>
+              <apply>
+                <times/>
+                <ci> Ka27 </ci>
+                <ci> Grb2uPEAK3d </ci>
+                <ci> ASAP1 </ci>
+              </apply>
+              <apply>
+                <times/>
+                <ci> Kd27 </ci>
+                <ci> Grb2uPEAK3duASAP1 </ci>
+              </apply>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+    </listOfReactions>
+  </model>
+</sbml>

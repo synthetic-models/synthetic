@@ -1,0 +1,233 @@
+model FGFR4_RTK_model
+
+# Reactions
+J0_f: IGFR -> pIGFR; kc01f * IGF * IGFR
+J0_r: pIGFR -> IGFR; Vm01r * (1 + ki01r*PTP) * pIGFR
+J1_f: FGFR4 -> pFGFR4; kc02f * FGF * FGFR4 /(1 + Ki02f*(FGFR4i^n02/(Kmf02^n02 + FGFR4i^n02)))
+J1_r: pFGFR4 -> FGFR4; Vm02r *  (1 + ki02r1*PTP)*(1 + ki02r2*aCbl) * pFGFR4
+J2_f: ERBB -> pERBB; (kc03f * HRG + kc03f2 * FOXO)* ERBB / (1+ ki03f *pERK) / (1 + Ki03f2*(ERBBi/(Kmf03 + ERBBi)))
+J2_r: pERBB -> ERBB; Vm03r *  (1 + ki03r*PTP)  * pERBB
+J3_f: IRS -> pIRS; kc04f * pIGFR * IRS  / (1+ ki04f *pS6K)
+J3_r: pIRS -> IRS; Vm04r * pIRS
+J4_f: PI3K -> aPI3K; (kc05f1 * pIRS + kc05f2 * (aGAB1 + aGAB2) + kc05f3 * aRas + kc05f4 * pERBB) * PI3K /(1 + Ki06f*(PI3Ki^n06/(Kmf06^n06 + PI3Ki^n06)))
+J4_r: aPI3K -> PI3K; Vm05r * aPI3K
+J5_f: PIP2 -> PIP3; kc06f * aPI3K * PIP2
+J5_r: PIP3 -> PIP2; kc06r * PTEN * PIP3
+J6_f: PDK1 -> aPDK1; kc07f * PIP3 * PDK1
+J6_r: aPDK1 -> PDK1; Vm07r * aPDK1
+J7_f: Akt -> pAkt; (kc08f * aPDK1 + kc08f1 * amTORC2) * Akt / (1 + Ki08f*(AKTi/(Kmf08 + AKTi)))
+J7_r: pAkt -> Akt; Vm08r * pAkt
+J8_f: mTORC1 -> amTORC1; (kc09f * pAkt + kc09f1 * pERK)* mTORC1
+J8_r: amTORC1 -> mTORC1; Vm09r * amTORC1
+J9_f: S6K -> pS6K; kc10f * S6K * amTORC1
+J9_r: pS6K -> S6K; Vm10r * pS6K
+J10_f: FRS2 -> pFRS2; kc11f * pFGFR4 * FRS2 / (1+ki11r*pERK)
+J10_r: pFRS2 -> FRS2; Vm11r * pFRS2 * (1+ki11f*aCbl)
+J11_f: Grb2 -> aGrb2; (kc12f1 *  pFRS2/(1+ki12f*pSPRY2) + kc12f2 * pERBB + kc12f3 * pIRS) * Grb2
+J11_r: aGrb2 -> Grb2; Vm12r * aGrb2
+J12_f: Sos -> aSos; kc13f * Sos * aGrb2
+J12_r: aSos -> Sos; Vm13r * aSos
+J13_f: Shp2 -> aShp2; (kc14f1 * aGrb2 + kc14f2 * (aGAB1 + aGAB2)) * Shp2
+J13_r: aShp2 -> Shp2; Vm14r * aShp2
+J14_f: Ras -> aRas; (kc15f1 * aSos/(1 + ki15f*pERK) + kc15f2 * aShp2)*Ras
+J14_r: aRas -> Ras; Vm15r * aRas
+J15_f: Raf -> aRaf; kc16f * Raf * aRas / ((1 + ki16f1*pAkt) * (1 + ki16f2*(SPRY2 + pSPRY2)))
+J15_r: aRaf -> Raf; Vm16r * aRaf
+J16_f: MEK -> pMEK; kc17f * MEK * aRaf / (1 + Ki17f*(MEKi/(Kmf17 + MEKi)))
+J16_r: pMEK -> MEK; Vm17r * pMEK
+J17_f: ERK -> pERK; kc18f * ERK * pMEK
+J17_r: pERK -> ERK; Vm18r * pERK
+J18_f: GAB1 -> aGAB1; kc19f * (1 + alpha19f * PIP3)* aGrb2 * GAB1 /(1 + ki19f*pERK)
+J18_r: aGAB1 -> GAB1; Vm19r * aGAB1
+J19_f: GAB2 -> aGAB2; kc20f * (1 + alpha20f * PIP3)* aGrb2 * GAB2 /((1 + ki20f1*pERK) * (1 + ki20f2*pAkt))
+J19_r: aGAB2 -> GAB2; Vm20r * aGAB2
+J20_f: SPRY2 -> pSPRY2; kc25f * SPRY2 * pFRS2
+J20_r: pSPRY2 -> SPRY2; kc25r * pSPRY2
+J21_f: Cbl -> aCbl; kc31f * aGrb2 * Cbl
+J21_r: aCbl -> Cbl; Vm31r * aCbl
+J22_f: FOXO -> pFOXO; kc32f * pAkt * FOXO
+J22_r: pFOXO -> FOXO; Vm32r * pFOXO
+J23_f: mTORC2 -> amTORC2; kc33f * PIP3 * mTORC2 /(1 + ki33f*pS6K)
+J23_r: amTORC2 -> mTORC2; Vm33r * amTORC2
+
+# Initial Conditions
+IGFR = 7.58
+pIGFR = 0.0
+FGFR4 = 962.77
+pFGFR4 = 0.0
+ERBB = 680.21
+pERBB = 0.0
+IRS = 13.04
+pIRS = 0.0
+PI3K = 2.72
+aPI3K = 0.0
+PIP2 = 5000.0
+PIP3 = 0.0
+FRS2 = 20.54
+pFRS2 = 0.0
+Grb2 = 6436.64
+aGrb2 = 0.0
+Akt = 653.74
+pAkt = 0.0
+PDK1 = 39.24
+aPDK1 = 0.0
+mTORC1 = 13.17
+amTORC1 = 0.0
+S6K = 41.1
+pS6K = 0.0
+Sos = 3.7
+aSos = 0.0
+Shp2 = 270.39
+aShp2 = 0.0
+Ras = 1813.21
+aRas = 0.0
+Raf = 27.49
+aRaf = 0.0
+MEK = 1997.8
+pMEK = 0.0
+ERK = 2054.4
+pERK = 0.0
+GAB1 = 20.03
+aGAB1 = 0.0
+GAB2 = 4.26
+aGAB2 = 0.0
+mSPRY2 = 0.0
+SPRY2 = 0.0
+pSPRY2 = 0.0
+mPTP = 0.0
+PTP = 0.0
+Cbl = 5.43
+aCbl = 0.0
+FOXO = 1025.0
+pFOXO = 1025.0
+mTORC2 = 13.17
+amTORC2 = 0.0
+
+# Parameters
+kc01f = 0.01
+Vm01r = 0.01
+ki01r = 1.0
+kc02f = 0.01
+Ki02f = 1.0
+Vm02r = 0.01
+ki02r1 = 0.1
+ki02r2 = 0.1
+kc03f = 0.01
+Vm03r = 0.01
+ki03r = 0.1
+kc04f = 0.01
+ki04f = 1.0
+Vm04r = 0.1
+kc05f1 = 0.01
+kc05f2 = 0.01
+kc05f3 = 0.01
+Vm05r = 0.1
+kc06f = 0.01
+Ki06f = 1.0
+kc06r = 0.1
+kc07f = 0.01
+Vm07r = 0.01
+kc08f = 0.01
+Vm08r = 0.01
+kc09f = 0.01
+Vm09r = 0.01
+kc10f = 0.01
+Vm10r = 0.01
+kc11f = 0.01
+ki11f = 0.1
+ki11r = 0.1
+Vm11r = 0.01
+kc12f1 = 0.01
+kc12f2 = 0.01
+kc12f3 = 0.01
+ki12f = 0.1
+Vm12r = 0.01
+kc13f = 0.01
+Vm13r = 0.01
+kc14f1 = 0.01
+kc14f2 = 0.01
+Vm14r = 0.01
+kc15f1 = 0.01
+kc15f2 = 0.01
+ki15f = 0.01
+Vm15r = 0.01
+kc16f = 0.01
+ki16f1 = 0.1
+ki16f2 = 0.1
+Vm16r = 0.1
+kc17f = 0.01
+Vm17r = 0.01
+kc18f = 0.01
+Vm18r = 0.01
+kc19f = 0.01
+alpha19f = 0.1
+ki19f = 0.1
+Vm19r = 0.01
+kc20f = 0.01
+alpha20f = 0.1
+ki20f1 = 0.1
+ki20f2 = 0.1
+Vm20r = 0.01
+vs21 = 0.01
+kc21 = 0.1
+Km21 = 1.0
+kc23 = 0.01
+Km23 = 1.0
+kc24 = 0.1
+kc25f = 0.01
+kc25r = 0.01
+kc26 = 0.1
+vs27 = 0.01
+kc27a = 0.1
+Km27a = 1.0
+kc27b = 0.01
+Km27b = 1.0
+kc29 = 0.1
+Km29 = 1.0
+kc31f = 0.01
+Vm31r = 0.1
+n02 = 1.0
+Kmf02 = 2.0
+n06 = 1.0
+Kmf06 = 2.0
+kc03f2 = 0.01
+ki03f = 0.01
+Ki03f2 = 0.01
+kc05f4 = 0.01
+kc32f = 0.01
+Vm32r = 0.01
+Ki08f = 0.01
+Ki17f = 0.01
+kc33f = 0.01
+Vm33r = 0.01
+kc08f1 = 0.01
+ki33f = 0.01
+kc09f1 = 0.01
+Kmf08 = 0.01
+Kmf17 = 0.01
+Kmf03 = 0.01
+PTEN = 9.54
+IGF0 = 1e-30
+HRG0 = 1e-30
+FGF0 = 1e-30
+IGF_on = 5000.0
+FGF_on = 5000.0
+HRG_on = 5000.0
+FGFR4i_0 = 1e-30
+PI3Ki_0 = 1e-30
+ERBBi_0 = 1e-30
+AKTi_0 = 1e-30
+MEKi_0 = 1e-30
+inh_on = 10000000000.0
+
+# Input Functions
+IGF := piecewise(IGF0, time >= IGF_on, 0)
+HRG := piecewise(HRG0, time >= HRG_on, 0)
+FGF := piecewise(FGF0, time >= FGF_on, 0)
+FGFR4i := piecewise(FGFR4i_0, time >= inh_on, 0)
+PI3Ki := piecewise(PI3Ki_0, time >= inh_on, 0)
+ERBBi := piecewise(ERBBi_0, time >= inh_on, 0)
+AKTi := piecewise(AKTi_0, time >= inh_on, 0)
+MEKi := piecewise(MEKi_0, time >= inh_on, 0)
+
+end

@@ -1,0 +1,70 @@
+model SimpleCascade2
+
+J0: A0p -> A0; J0_Vmax*A0p/(J0_Km + A0p)
+J1: A0 -> A0p; J1_Vmax*A0/(J1_Km + A0)
+J2: A1p -> A1; J2_Vmax*A1p/(J2_Km + A1p)
+J3: A1 -> A1p; J3_Vmax*A1/(J3_Km + A1)
+J4: A2p -> A2; J4_Vmax*A2p/(J4_Km + A2p)
+J5: A2 -> A2p; J5_Vmax*A2/(J5_Km + A2)
+J6: B0p -> B0; J6_Vmax*B0p*A0p/(J6_Km + B0p)
+J7: B0 -> B0p; J7_Vmax*B0/(J7_Km + B0)
+J8: B1p -> B1; J8_Vmax*B1p*A1p/(J8_Km + B1p)
+J9: B1 -> B1p; J9_Vmax*B1/(J9_Km + B1)
+J10: B2p -> B2; J10_Vmax*B2p*A2p/(J10_Km + B2p)
+J11: B2 -> B2p; J11_Vmax*B2/(J11_Km + B2)
+J12: Cp -> C; (J12_Vmax+B0*J12_Kw0+B1*J12_Kw1)*Cp/(J12_Km*(1+B2*J12_Kic0)) + Cp)
+J13: C -> Cp; J13_Vmax*C/(J13_Km + C)
+
+# State variables in the system
+A0p=0
+A0=100
+A1p=0
+A1=100
+A2p=0
+A2=100
+B0p=0
+B0=100
+B1p=0
+B1=100
+B2p=0
+B2=100
+Cp=0
+C=100
+
+# Parameters in the system
+J0_Km=100
+J0_Vmax=10
+J1_Km=100
+J1_Vmax=10
+J2_Km=100
+J2_Vmax=10
+J3_Km=100
+J3_Vmax=10
+J4_Km=100
+J4_Vmax=10
+J5_Km=100
+J5_Vmax=10
+J6_Km=100
+J6_Vmax=10
+J7_Km=100
+J7_Vmax=10
+J8_Km=100
+J8_Vmax=10
+J9_Km=100
+J9_Vmax=10
+J10_Km=100
+J10_Vmax=10
+J11_Km=100
+J11_Vmax=10
+J12_Km=100
+J12_Vmax=10
+J12_Kw0=0.0001
+J12_Kw1=0.0001
+J12_Kic0=0.001
+J13_Km=100
+J13_Vmax=10
+
+# Other variables in the system
+
+
+end

@@ -1,0 +1,104 @@
+model peak3modelv2
+
+cr1: pEGFR -> EGFR; cr1_Vmax*pEGFR/(cr1_Km + pEGFR)
+cr2: EGFR -> pEGFR; cr2_Vmax*EGFR*egf/(cr2_Km + EGFR)
+J2: rpEGFR -> rEGFR; cr1_Vmax*rpEGFR/(cr1_Km + rpEGFR)
+J3: rEGFR -> rpEGFR; cr2_Vmax*rEGFR*egf/(cr2_Km + rEGFR)
+cr3: rEGFR -> EGFR; cr3_Vmax*rEGFR/(cr3_Km + rEGFR)
+cr4: EGFR -> rEGFR; (cr4_Vmax+total_PEAK3*cr4_Kw0)*EGFR/(cr4_Km + EGFR)
+J6: rpEGFR -> pEGFR; cr3_Vmax*rpEGFR/(cr3_Km + rpEGFR)
+J7: pEGFR -> rpEGFR; (cr4_Vmax+total_PEAK3*cr4_Kw0)*pEGFR/(cr4_Km + pEGFR)
+core1: pPEAK3 -> PEAK3; (core1_Vmax+rpShc*core1_Kw0)*pPEAK3/(core1_Km + pPEAK3)
+core1b: PEAK3 -> pPEAK3; core1b_Vmax*PEAK3*(aSFK*core1b_Ka0)/(core1b_Km + PEAK3)
+cr5: pShc -> Shc; cr5_Vmax*pShc/(cr5_Km + pShc)
+cr6: Shc -> pShc; cr6_Vmax*Shc*total_pEGFR/(cr6_Km + Shc)
+J12: rpShc -> rShc; cr5_Vmax*rpShc/(cr5_Km + rpShc)
+J13: rShc -> rpShc; cr6_Vmax*rShc*total_pEGFR/(cr6_Km + rShc)
+cr7: rShc -> Shc; cr7_Vmax*rShc/(cr7_Km + rShc)
+cr8: Shc -> rShc; (cr8_Vmax+total_PEAK3*cr8_Kw0)*Shc/(cr8_Km + Shc)
+J16: rpShc -> pShc; cr7_Vmax*rpShc/(cr7_Km + rpShc)
+J17: pShc -> rpShc; (cr8_Vmax+total_PEAK3*cr8_Kw0)*pShc/(cr8_Km + pShc)
+cr9: Grb2 -> rGrb2; (cr9_Vmax+pPEAK3*cr9_Kw0)*Grb2/(cr9_Km + Grb2)
+cr10: rGrb2 -> Grb2; cr10_Vmax*rGrb2/(cr10_Km + rGrb2)
+cr11: ASAP1 -> rASAP1; cr11_Vmax*ASAP1*rGrb2/(cr11_Km + ASAP1)
+cr12: rASAP1 -> ASAP1; cr12_Vmax*rASAP1/(cr12_Km + rASAP1)
+cr13: CrkII -> rCrkII; (cr13_Vmax+pPEAK3*cr13_Kw0)*CrkII/(cr13_Km + CrkII)
+cr14: rCrkII -> CrkII; cr14_Vmax*rCrkII/(cr14_Km + rCrkII)
+cr15: SFK -> aSFK; (cr15_Vmax+total_pEGFR*cr15_Kw0)*SFK/(cr15_Km + SFK)
+cr16: aSFK -> SFK; cr16_Vmax*aSFK/(cr16_Km + aSFK)
+
+# State variables in the system
+pEGFR=0
+EGFR=100
+rpEGFR=0
+rEGFR=0
+pPEAK3=0
+PEAK3=100
+pShc=0
+Shc=100
+rpShc=0
+rShc=0
+Grb2=100
+rGrb2=0
+ASAP1=100
+rASAP1=0
+CrkII=100
+rCrkII=0
+SFK=100
+aSFK=0
+
+# Parameters in the system
+cr1_Km=100
+cr1_Vmax=10
+cr2_Km=100
+cr2_Vmax=10
+cr3_Km=100
+cr3_Vmax=10
+cr4_Km=100
+cr4_Vmax=10
+cr4_Kw0=100
+core1_Km=100
+core1_Vmax=10
+core1_Kw0=10000
+core1b_Km=100
+core1b_Vmax=10
+core1b_Ka0=1
+cr5_Km=100
+cr5_Vmax=10
+cr6_Km=100
+cr6_Vmax=10
+cr7_Km=100
+cr7_Vmax=10
+cr8_Km=100
+cr8_Vmax=10
+cr8_Kw0=100
+cr9_Km=100
+cr9_Vmax=10
+cr9_Kw0=100
+cr10_Km=100
+cr10_Vmax=10
+cr11_Km=100
+cr11_Vmax=10
+cr12_Km=100
+cr12_Vmax=10
+cr13_Km=100
+cr13_Vmax=10
+cr13_Kw0=100
+cr14_Km=100
+cr14_Vmax=10
+cr15_Km=100
+cr15_Vmax=10
+cr15_Kw0=100
+cr16_Km=100
+cr16_Vmax=10
+
+# Other variables in the system
+egf := piecewise(0, time < 1440.1, 8.33)
+total_PEAK3 := pPEAK3 + PEAK3
+total_pEGFR := pEGFR + rpEGFR
+total_rEGFR := rEGFR + rpEGFR
+total_pShc := rpShc + pShc
+total_Grb2 := rGrb2 + Grb2
+
+
+end

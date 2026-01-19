@@ -1,0 +1,14 @@
+model peak3
+  # Examples of different rate laws and initialization
+
+
+  J0: peak3 -> ppeak3; Vm*peak3/(Km + peak3);
+
+
+  peak3 = 100
+  ppeak3 = 0
+
+
+  Vm = 10
+  Km = 100
+end

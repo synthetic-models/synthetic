@@ -1,0 +1,7 @@
+import "models/simple_peak3.txt"
+import "models/simple_peak3_2.txt"
+
+model complexpeak3
+    A: peak3()
+    B: peak32()
+end
