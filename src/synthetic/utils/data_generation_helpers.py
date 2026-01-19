@@ -9,8 +9,8 @@ import numpy as np
 from tqdm import tqdm
 from joblib import Parallel, delayed
 
-from models.Solver.Solver import Solver
-from models.Utils import ModelSpecification
+from ..Solver.Solver import Solver
+from ..Specs.BaseSpec import BaseSpec as ModelSpecification
 
 
 def validate_simulation_params(simulation_params: Dict[str, Any]) -> None:
@@ -490,8 +490,8 @@ def make_data(
     from .make_feature_data import make_feature_data
     from tqdm import tqdm
     from joblib import Parallel, delayed
-    from models.Solver.Solver import Solver
-    from models.Utils import ModelSpecification
+    from ..Solver.Solver import Solver
+    from ..Specs.BaseSpec import BaseSpec as ModelSpecification
     
     # Generate feature data (initial value perturbations)
     feature_df = make_feature_data(

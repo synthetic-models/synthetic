@@ -1,4 +1,5 @@
-from models.Solver.Solver import Solver
+# Fixed circular import by using relative import
+from .Solver import Solver
 
 import re
 from typing import List, Dict, Any, Tuple

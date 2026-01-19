@@ -1,5 +1,5 @@
-from ..Utils import * 
-from .ModelSpecification import ModelSpecification
+# Fixed import: Utils module doesn't exist, using BaseSpec instead
+from .BaseSpec import BaseSpec as ModelSpecification
 from .Drug import Drug
 
 class DrugModelSpecification(ModelSpecification):

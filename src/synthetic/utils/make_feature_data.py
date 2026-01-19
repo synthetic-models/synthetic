@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, Union, List
 import pandas as pd
 import numpy as np
 
-from models.SyntheticGenUtils.PerturbationUtils import (
+from ..SyntheticGenUtils.PerturbationUtils import (
     generate_gaussian_perturbation_dataframe,
     generate_lognormal_perturbation_dataframe,
     generate_uniform_perturbation_dataframe,
@@ -20,7 +20,7 @@ from models.SyntheticGenUtils.PerturbationUtils import (
     convert_perturbations_to_dataframe,
     validate_initial_values
 )
-from models.utils.conserve_rules_utils import resolve_species_range
+from .conserve_rules_utils import resolve_species_range
 
 logger = logging.getLogger(__name__)
 

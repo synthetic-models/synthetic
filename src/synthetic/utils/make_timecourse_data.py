@@ -12,11 +12,11 @@ import numpy as np
 from tqdm import tqdm
 from joblib import Parallel, delayed
 
-from models.Solver.Solver import Solver
-from models.Solver.ScipySolver import ScipySolver
-from models.Solver.RoadrunnerSolver import RoadrunnerSolver
-from models.ModelBuilder import ModelBuilder
-from models.Utils import ModelSpecification
+from ..Solver.Solver import Solver
+from ..Solver.ScipySolver import ScipySolver
+from ..Solver.RoadrunnerSolver import RoadrunnerSolver
+from ..ModelBuilder import ModelBuilder
+from ..Specs.BaseSpec import BaseSpec as ModelSpecification
 
 
 def make_timecourse_data(
