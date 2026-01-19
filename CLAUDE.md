@@ -22,6 +22,23 @@ pytest tests/test_specific_file.py::test_function_name
 python -m build
 ```
 
+## Python Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `antimony>=2.15.0` | SBML/Antimony model format conversion |
+| `joblib>=1.5.0` | Parallel processing for batch simulations |
+| `matplotlib>=3.10.3` | Plotting and visualization |
+| `numba>=0.61.2` | JIT compilation for performance optimization |
+| `numpy>=2.2.5` | Numerical operations and array handling |
+| `pandas>=2.2.3` | Data structure for simulation results and datasets |
+| `python-dotenv>=1.1.0` | Environment variable management |
+| `pyyaml>=6.0.2` | YAML configuration file parsing |
+| `libroadrunner>=2.3.0` | libRoadRunner SBML simulation engine |
+| `scipy>=1.15.3` | Scientific computing, ODE integration (`odeint`) |
+| `sympy>=1.14.0` | Symbolic mathematics for ODE generation |
+| `tqdm>=4.67.1` | Progress bars for long-running operations |
+
 ## Core Architecture
 
 ### Three-Layer Abstraction Pattern
