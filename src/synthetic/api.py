@@ -17,7 +17,7 @@ Example usage:
     X, y = make_dataset_drug_response(n=1000, cell_model=vc, target_specie='Oa')
 """
 
-from typing import List, Dict, Tuple, Optional, Any
+from typing import List, Dict, Tuple, Optional, Any, Union
 import numpy as np
 import pandas as pd
 
@@ -49,6 +49,13 @@ class VirtualCell:
         name: str = "VirtualCell",
         random_seed: Optional[int] = None,
         feedback_density: float = 0.5,
+        auto_compile: bool = True,
+        auto_drug: bool = True,
+        drug_name: str = "D",
+        drug_start_time: float = 5000.0,
+        drug_value: float = 100.0,
+        drug_regulation_type: str = "down",
+        simulation_end: float = 10000.0,
     ):
         """
         Initialize a virtual cell model.
@@ -58,11 +65,25 @@ class VirtualCell:
             name: Name for the virtual cell
             random_seed: Optional random seed for reproducibility
             feedback_density: Proportion of feedback connections (0-1)
+            auto_compile: Compile immediately after creation (default: True)
+            auto_drug: Auto-generate a drug targeting degree 1 R species (default: True)
+            drug_name: Name for auto-generated drug (default: "D")
+            drug_start_time: Time at which auto-drug becomes active (default: 5000.0)
+            drug_value: Active concentration for auto-drug (default: 100.0)
+            drug_regulation_type: Regulation type for auto-drug: "up" or "down" (default: "down")
+            simulation_end: Simulation end time for make_dataset_drug_response (default: 10000.0)
         """
         self._degree_cascades = degree_cascades
         self._name = name
         self._random_seed = random_seed
         self._feedback_density = feedback_density
+        self._auto_compile = auto_compile
+        self._auto_drug = auto_drug
+        self._auto_drug_name: Optional[str] = drug_name if auto_drug else None
+        self._drug_start_time = drug_start_time
+        self._auto_drug_value = drug_value
+        self._auto_drug_regulation_type = drug_regulation_type
+        self._simulation_end = simulation_end
         self._drugs: List[Tuple[Drug, Optional[float]]] = []
         self._spec: Optional[DegreeInteractionSpec] = None
         self._model: Optional[ModelBuilder] = None
@@ -105,6 +126,51 @@ class VirtualCell:
         self._drugs.append((drug, value))
         return self
 
+    def list_drugs(self) -> List[Dict[str, Any]]:
+        """
+        List all drugs in the system (both auto-generated and manually added).
+
+        Returns:
+            List of dictionaries with drug information:
+            [{'name': 'D', 'targets': ['R1_1'], 'types': ['down'],
+              'start_time': 5000.0, 'default_value': 0.0, 'is_auto': True}, ...]
+        """
+        drugs_info = []
+        for drug, value in self._drugs:
+            drugs_info.append({
+                'name': drug.name,
+                'targets': drug.regulation,
+                'types': drug.regulation_type,
+                'start_time': drug.start_time,
+                'default_value': drug.default_value,
+                'is_auto': drug.name == self._auto_drug_name
+            })
+        return drugs_info
+
+    def _generate_auto_drug(self) -> None:
+        """
+        Generate auto-drug based on degree_cascades[0].
+
+        Creates a drug targeting all degree 1 R species (R1_1, R1_2, etc.)
+        with count based on degree_cascades[0].
+        """
+        cascade_count = self._degree_cascades[0]
+        targets = []
+
+        # Generate targets: R1_1, R1_2, ... based on cascade_count
+        for i in range(cascade_count):
+            targets.append(f"R1_{i + 1}")
+
+        # Create and store auto-drug
+        drug = Drug(
+            name=self._auto_drug_name,
+            start_time=self._drug_start_time,
+            default_value=0.0,
+            regulation=targets,
+            regulation_type=[self._auto_drug_regulation_type] * len(targets),
+        )
+        self._drugs.append((drug, self._auto_drug_value))
+
     def compile(
         self,
         mean_range_species: Tuple[int, int] = (50, 150),
@@ -122,6 +188,9 @@ class VirtualCell:
         Creates the underlying DegreeInteractionSpec, ModelBuilder, and optionally
         applies KineticParameterTuner for biologically plausible parameters.
 
+        If auto_drug is enabled, automatically generates a drug targeting degree 1
+        R species and applies its parameters to the model.
+
         Args:
             mean_range_species: Range for initial species values
             rangeScale_params: Range for parameter scaling
@@ -135,6 +204,10 @@ class VirtualCell:
         Returns:
             self for method chaining
         """
+        # Generate auto-drug if enabled
+        if self._auto_drug:
+            self._generate_auto_drug()
+
         # Create specification
         self._spec = DegreeInteractionSpec(degree_cascades=self._degree_cascades)
         self._spec.generate_specifications(
@@ -142,7 +215,7 @@ class VirtualCell:
             feedback_density=self._feedback_density,
         )
 
-        # Add drugs
+        # Add drugs (auto-drug + any manually added)
         for drug, value in self._drugs:
             self._spec.add_drug(drug, value)
 
@@ -167,6 +240,13 @@ class VirtualCell:
             )
             for param_name, value in updated_params.items():
                 self._model.set_parameter(param_name, value)
+
+        # Apply auto-drug parameters using regulator_parameter_map
+        if self._auto_drug_name:
+            regulator_parameter_map = self._model.get_regulator_parameter_map()
+            drug_params = regulator_parameter_map.get(self._auto_drug_name, {})
+            for param_name in drug_params:
+                self._model.set_parameter(param_name, self._auto_drug_value)
 
         self._compiled = True
         return self
@@ -280,6 +360,13 @@ class Builder:
         name: str = "VirtualCell",
         random_seed: Optional[int] = None,
         feedback_density: float = 0.5,
+        auto_compile: bool = True,
+        auto_drug: bool = True,
+        drug_name: str = "D",
+        drug_start_time: float = 5000.0,
+        drug_value: float = 100.0,
+        drug_regulation_type: str = "down",
+        simulation_end: float = 10000.0,
     ) -> VirtualCell:
         """
         Create a virtual cell specification.
@@ -289,30 +376,56 @@ class Builder:
             name: Name for the virtual cell
             random_seed: Optional random seed for reproducibility
             feedback_density: Proportion of feedback connections (0-1)
+            auto_compile: Compile immediately after creation (default: True)
+            auto_drug: Auto-generate a drug targeting degree 1 R species (default: True)
+            drug_name: Name for auto-generated drug (default: "D")
+            drug_start_time: Time at which auto-drug becomes active (default: 5000.0)
+            drug_value: Active concentration for auto-drug (default: 100.0)
+            drug_regulation_type: Regulation type for auto-drug: "up" or "down" (default: "down")
+            simulation_end: Simulation end time for make_dataset_drug_response (default: 10000.0)
 
         Returns:
-            VirtualCell instance (not yet compiled)
+            VirtualCell instance (compiled if auto_compile=True)
         """
-        return VirtualCell(
+        vc = VirtualCell(
             degree_cascades=degree_cascades,
             name=name,
             random_seed=random_seed,
             feedback_density=feedback_density,
+            auto_compile=auto_compile,
+            auto_drug=auto_drug,
+            drug_name=drug_name,
+            drug_start_time=drug_start_time,
+            drug_value=drug_value,
+            drug_regulation_type=drug_regulation_type,
+            simulation_end=simulation_end,
         )
+        if auto_compile:
+            vc.compile()
+        return vc
 
 
 def make_dataset_drug_response(
     n: int,
     cell_model: VirtualCell,
     target_specie: str = 'Oa',
-    perturbation_type: str = 'lognormal',
+    perturbation_type: str = 'gaussian',
     perturbation_params: Optional[Dict[str, Any]] = None,
+    parameter_values: Optional[Dict[str, float]] = None,
+    param_perturbation_type: str = 'none',
+    param_perturbation_params: Optional[Dict[str, Any]] = None,
     simulation_params: Optional[Dict[str, Any]] = None,
     seed: Optional[int] = None,
+    param_seed: Optional[int] = None,
     solver_type: str = 'scipy',
     jit: bool = True,
     verbose: bool = False,
-) -> Tuple[np.ndarray, np.ndarray]:
+    resample_size: int = 10,
+    max_retries: int = 3,
+    require_all_successful: bool = False,
+    return_details: bool = False,
+    capture_all_species: bool = False,
+) -> Union[Tuple[np.ndarray, np.ndarray], Dict[str, Any]]:
     """
     Generate synthetic drug response dataset.
 
@@ -327,27 +440,46 @@ def make_dataset_drug_response(
         n: Number of samples to generate
         cell_model: VirtualCell instance (must be compiled)
         target_specie: Name of the outcome species to use as target (default: 'Oa')
-        perturbation_type: Type of perturbation ('uniform', 'gaussian', 'lognormal', 'lhs')
+        perturbation_type: Type of initial value perturbation ('uniform', 'gaussian', 'lognormal', 'lhs')
         perturbation_params: Parameters for perturbation distribution
+        parameter_values: Dictionary of kinetic parameter values to perturb (optional)
+        param_perturbation_type: Type of kinetic parameter perturbation ('none', 'uniform', 'gaussian', 'lognormal', 'lhs')
+        param_perturbation_params: Parameters for kinetic parameter perturbation (optional)
         simulation_params: Dictionary with 'start', 'end', 'points' keys
-        seed: Random seed for reproducibility
+        seed: Random seed for reproducibility (initial value perturbations)
+        param_seed: Random seed for parameter perturbations (uses seed if not provided)
         solver_type: Type of solver ('scipy' or 'roadrunner')
         jit: Whether to use JIT compilation (only for scipy solver)
         verbose: Whether to show progress bar
+        resample_size: Number of alternative samples to generate when a simulation fails (default: 10)
+        max_retries: Maximum number of resampling attempts per failed index (default: 3)
+        require_all_successful: Whether to require all samples to succeed (default: False)
+        return_details: If True, returns extended data structure with intermediate datasets (default: False)
+        capture_all_species: If True, captures timecourses for all species in returned data.
 
     Returns:
-        Tuple of (X, y) where X is shape (n_samples, n_features)
-        and y is shape (n_samples,)
+        If return_details=False: Tuple of (X, y) where X is shape (n_samples, n_features)
+            and y is shape (n_samples,)
+        If return_details=True: Dictionary with keys:
+            - 'X': Feature matrix (n_samples, n_features)
+            - 'y': Target vector (n_samples,)
+            - 'features': Feature dataframe (initial values)
+            - 'targets': Target dataframe (outcome values)
+            - 'parameters': Kinetic parameters dataframe (None if not provided)
+            - 'timecourse': Timecourse simulation data
+            - 'metadata': Dictionary with metadata about generation process
 
     Raises:
         ValueError: If cell_model is not compiled or has invalid parameters
     """
+    from .utils.data_generation_helpers import make_data
+
     if not cell_model._compiled:
         raise ValueError("cell_model must be compiled. Call cell_model.compile() first.")
 
-    # Set default simulation parameters
+    # Set default simulation parameters (use cell_model's simulation_end)
     if simulation_params is None:
-        simulation_params = {'start': 0, 'end': 10000, 'points': 101}
+        simulation_params = {'start': 0, 'end': cell_model._simulation_end, 'points': 101}
 
     # Validate simulation parameters
     if 'start' not in simulation_params or 'end' not in simulation_params or 'points' not in simulation_params:
@@ -355,19 +487,10 @@ def make_dataset_drug_response(
 
     # Set default perturbation parameters
     if perturbation_params is None:
-        perturbation_params = {'rsd_shape': 0.2}
+        perturbation_params = {'rsd': 0.2}
 
     # Get initial values (excluding drugs)
     initial_values = cell_model.get_initial_values(exclude_drugs=True)
-
-    # Generate feature data (perturbations)
-    feature_df = make_feature_data(
-        initial_values=initial_values,
-        perturbation_type=perturbation_type,
-        perturbation_params=perturbation_params,
-        n_samples=n,
-        seed=seed,
-    )
 
     # Create and compile solver
     if solver_type == 'scipy':
@@ -381,22 +504,45 @@ def make_dataset_drug_response(
     else:
         raise ValueError(f"Unsupported solver_type: {solver_type}. Use 'scipy' or 'roadrunner'")
 
-    # Generate target data (simulation results)
-    target_df, _ = make_target_data(
+    # Generate feature and target data using make_data
+    result = make_data(
+        initial_values=initial_values,
+        perturbation_type=perturbation_type,
+        perturbation_params=perturbation_params,
+        n_samples=n,
         model_spec=cell_model.spec,
         solver=solver,
-        feature_df=feature_df,
+        parameter_values=parameter_values,
+        param_perturbation_type=param_perturbation_type,
+        param_perturbation_params=param_perturbation_params,
         simulation_params=simulation_params,
-        n_cores=1,
+        seed=seed,
+        param_seed=param_seed,
+        resample_size=resample_size,
+        max_retries=max_retries,
+        require_all_successful=require_all_successful,
+        return_details=return_details,
+        capture_all_species=capture_all_species,
         outcome_var=target_specie,
         verbose=verbose,
+        n_cores=1,
     )
 
-    # Convert to numpy arrays (sklearn-compatible format)
-    X = feature_df.values.astype(np.float64)
-    y = target_df.values.ravel().astype(np.float64)
-
-    return X, y
+    if return_details:
+        # Return extended data structure
+        X = result['features'].values.astype(np.float64)
+        y = result['targets'].values.ravel().astype(np.float64)
+        return {
+            'X': X,
+            'y': y,
+            **result
+        }
+    else:
+        # Return sklearn-compatible format
+        feature_df, target_df = result
+        X = feature_df.values.astype(np.float64)
+        y = target_df.values.ravel().astype(np.float64)
+        return X, y
 
 
 __all__ = ['VirtualCell', 'Builder', 'make_dataset_drug_response']

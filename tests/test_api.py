@@ -9,18 +9,151 @@ import numpy as np
 from synthetic import Builder, VirtualCell, make_dataset_drug_response
 
 
+class TestAutoDrug:
+    """Tests for auto-drug generation feature."""
+
+    def test_auto_drug_generation_single_target(self):
+        """Test auto-drug targets single R1_1 when degree_cascades[0]=1."""
+        vc = Builder.specify(degree_cascades=[1, 2, 5])
+        drugs = vc.list_drugs()
+        assert len(drugs) == 1
+        assert drugs[0]['name'] == 'D'
+        assert drugs[0]['targets'] == ['R1_1']
+        assert drugs[0]['is_auto'] is True
+
+    def test_auto_drug_generation_multiple_targets(self):
+        """Test auto-drug targets R1_1 and R1_2 when degree_cascades[0]=2."""
+        vc = Builder.specify(degree_cascades=[2, 2, 5])
+        drugs = vc.list_drugs()
+        assert len(drugs) == 1
+        assert drugs[0]['targets'] == ['R1_1', 'R1_2']
+        assert drugs[0]['types'] == ['down', 'down']
+
+    def test_auto_drug_generation_three_targets(self):
+        """Test auto-drug targets R1_1, R1_2, R1_3 when degree_cascades[0]=3."""
+        vc = Builder.specify(degree_cascades=[3, 6, 15, 25])
+        drugs = vc.list_drugs()
+        assert len(drugs) == 1
+        assert drugs[0]['targets'] == ['R1_1', 'R1_2', 'R1_3']
+        assert drugs[0]['types'] == ['down', 'down', 'down']
+
+    def test_auto_drug_custom_parameters(self):
+        """Test auto-drug with custom parameters."""
+        vc = Builder.specify(
+            degree_cascades=[1, 2, 5],
+            drug_name="CustomDrug",
+            drug_value=50.0,
+            drug_regulation_type="up",
+        )
+        drugs = vc.list_drugs()
+        assert drugs[0]['name'] == 'CustomDrug'
+        assert drugs[0]['is_auto'] is True
+        assert drugs[0]['types'] == ['up']
+
+    def test_manual_and_auto_drug_together(self):
+        """Test manual add_drug() works alongside auto-drug."""
+        vc = Builder.specify(degree_cascades=[1, 2, 5])
+        vc.add_drug(name="ManualDrug", regulation=["R1_1"], regulation_type=["up"])
+        drugs = vc.list_drugs()
+        assert len(drugs) == 2
+        auto_drugs = [d for d in drugs if d['is_auto']]
+        manual_drugs = [d for d in drugs if not d['is_auto']]
+        assert len(auto_drugs) == 1
+        assert len(manual_drugs) == 1
+        assert auto_drugs[0]['name'] == 'D'
+        assert manual_drugs[0]['name'] == 'ManualDrug'
+
+    def test_auto_compile_flag(self):
+        """Test auto_compile=False prevents immediate compilation."""
+        vc = Builder.specify(degree_cascades=[1, 2, 5], auto_compile=False)
+        assert not vc._compiled
+
+    def test_auto_compile_default_true(self):
+        """Test auto_compile defaults to True."""
+        vc = Builder.specify(degree_cascades=[1, 2, 5])
+        assert vc._compiled
+
+    def test_auto_drug_disabled(self):
+        """Test auto_drug=False prevents auto-drug generation."""
+        vc = Builder.specify(degree_cascades=[1, 2, 5], auto_drug=False)
+        drugs = vc.list_drugs()
+        assert len(drugs) == 0
+
+    def test_drug_parameters_applied(self):
+        """Test drug parameters are automatically applied to model."""
+        vc = Builder.specify(degree_cascades=[1, 2, 5])
+        # Check drug parameters are set to drug_value (100)
+        params = vc.model.get_parameters()
+        regulator_map = vc.model.get_regulator_parameter_map()
+        drug_params = regulator_map.get('D', {})
+        # For "down" regulation, we expect Ki parameters set to 100.0
+        assert len(drug_params) > 0
+        for param_name in drug_params:
+            assert params[param_name] == 100.0
+
+    def test_drug_custom_value_applied(self):
+        """Test custom drug_value is applied correctly."""
+        vc = Builder.specify(
+            degree_cascades=[1, 2, 5],
+            drug_value=75.0,
+        )
+        params = vc.model.get_parameters()
+        regulator_map = vc.model.get_regulator_parameter_map()
+        drug_params = regulator_map.get('D', {})
+        for param_name in drug_params:
+            assert params[param_name] == 75.0
+
+    def test_simulation_end_default(self):
+        """Test simulation_end is set correctly."""
+        vc = Builder.specify(degree_cascades=[1, 2, 5])
+        assert vc._simulation_end == 10000.0
+
+    def test_simulation_end_custom(self):
+        """Test custom simulation_end is set correctly."""
+        vc = Builder.specify(
+            degree_cascades=[1, 2, 5],
+            simulation_end=5000.0,
+        )
+        assert vc._simulation_end == 5000.0
+
+    def test_make_dataset_uses_simulation_end(self):
+        """Test make_dataset_drug_response uses cell_model's simulation_end."""
+        vc = Builder.specify(
+            degree_cascades=[1, 2, 5],
+            simulation_end=5000.0,
+        )
+        X, y = make_dataset_drug_response(n=10, cell_model=vc)
+        assert X.shape[0] == 10
+        assert y.shape[0] == 10
+
+    def test_drug_start_time_default(self):
+        """Test drug_start_time defaults to 5000.0."""
+        vc = Builder.specify(degree_cascades=[1, 2, 5])
+        drugs = vc.list_drugs()
+        assert drugs[0]['start_time'] == 5000.0
+
+    def test_drug_start_time_custom(self):
+        """Test custom drug_start_time is set correctly."""
+        vc = Builder.specify(
+            degree_cascades=[1, 2, 5],
+            drug_start_time=10000.0,
+        )
+        drugs = vc.list_drugs()
+        assert drugs[0]['start_time'] == 10000.0
+
+
 class TestVirtualCell:
     """Tests for VirtualCell class."""
 
     def test_builder_creates_valid_virtual_cell(self):
         """Test that Builder.specify() creates valid VirtualCell."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5])
+        vc = Builder.specify(degree_cascades=[1, 2, 5], auto_compile=False)
         assert isinstance(vc, VirtualCell)
         assert not vc._compiled
 
     def test_add_drug_method_chaining(self):
         """Test that add_drug() returns self for chaining."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5])
+        vc = Builder.specify(degree_cascades=[1, 2, 5], auto_compile=False)
         result = vc.add_drug(
             name="DrugX",
             start_time=500.0,
@@ -33,7 +166,7 @@ class TestVirtualCell:
 
     def test_compile_with_kinetic_tuner(self):
         """Test VirtualCell.compile() with kinetic tuner enabled."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
+        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42, auto_compile=False)
         vc.compile(use_kinetic_tuner=True)
         assert vc._compiled
         assert vc._tuner is not None
@@ -42,7 +175,7 @@ class TestVirtualCell:
 
     def test_compile_without_kinetic_tuner(self):
         """Test VirtualCell.compile() with kinetic tuner disabled."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
+        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42, auto_compile=False)
         vc.compile(use_kinetic_tuner=False)
         assert vc._compiled
         assert vc._tuner is None
@@ -51,7 +184,7 @@ class TestVirtualCell:
 
     def test_get_species_names_excludes_drugs(self):
         """Test that get_species_names() excludes drugs by default."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
+        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42, auto_compile=False)
         vc.add_drug(name="DrugX", regulation=["R1_1"], regulation_type=["up"])
         vc.compile()
 
@@ -61,7 +194,7 @@ class TestVirtualCell:
 
     def test_get_initial_values_excludes_drugs(self):
         """Test that get_initial_values() excludes drugs by default."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
+        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42, auto_compile=False)
         vc.add_drug(name="DrugX", regulation=["R1_1"], regulation_type=["up"])
         vc.compile()
 
@@ -73,7 +206,7 @@ class TestVirtualCell:
 
     def test_get_target_concentrations_with_tuner(self):
         """Test that get_target_concentrations() returns values with tuner."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
+        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42, auto_compile=False)
         vc.compile(use_kinetic_tuner=True)
         target_concs = vc.get_target_concentrations()
         assert len(target_concs) > 0
@@ -83,20 +216,20 @@ class TestVirtualCell:
 
     def test_get_target_concentrations_without_tuner(self):
         """Test that get_target_concentrations() returns empty dict without tuner."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
+        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42, auto_compile=False)
         vc.compile(use_kinetic_tuner=False)
         target_concs = vc.get_target_concentrations()
         assert len(target_concs) == 0
 
     def test_spec_property_raises_if_not_compiled(self):
         """Test that spec property raises ValueError if not compiled."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5])
+        vc = Builder.specify(degree_cascades=[1, 2, 5], auto_compile=False)
         with pytest.raises(ValueError, match="must be compiled"):
             _ = vc.spec
 
     def test_model_property_raises_if_not_compiled(self):
         """Test that model property raises ValueError if not compiled."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5])
+        vc = Builder.specify(degree_cascades=[1, 2, 5], auto_compile=False)
         with pytest.raises(ValueError, match="must be compiled"):
             _ = vc.model
 
@@ -107,7 +240,6 @@ class TestMakeDatasetDrugResponse:
     def test_returns_correct_shapes(self):
         """Test that make_dataset_drug_response() returns correct shapes."""
         vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
-        vc.compile()
 
         n_samples = 100
         X, y = make_dataset_drug_response(
@@ -125,7 +257,7 @@ class TestMakeDatasetDrugResponse:
 
     def test_drugs_not_in_x_features(self):
         """Test that drugs are NOT included in X features."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
+        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42, auto_drug=False)
         vc.add_drug(name="DrugX", regulation=["R1_1"], regulation_type=["up"])
         vc.compile()
 
@@ -143,14 +275,14 @@ class TestMakeDatasetDrugResponse:
 
     def test_raises_if_not_compiled(self):
         """Test that make_dataset_drug_response() raises if model not compiled."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5])
+        vc = Builder.specify(degree_cascades=[1, 2, 5], auto_compile=False)
 
         with pytest.raises(ValueError, match="must be compiled"):
             make_dataset_drug_response(n=100, cell_model=vc)
 
     def test_with_drug_regulation(self):
         """Test dataset generation with drug regulation."""
-        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
+        vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42, auto_drug=False)
         vc.add_drug(
             name="DrugD",
             start_time=500.0,
