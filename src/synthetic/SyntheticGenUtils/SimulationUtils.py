@@ -7,9 +7,9 @@ from SyntheticGen.py to eliminate code duplication.
 
 import pandas as pd
 from typing import Dict, Any, List
-from models.Solver.Solver import Solver
-from models.Solver.RoadrunnerSolver import RoadrunnerSolver
-from models.Solver.ScipySolver import ScipySolver
+from ..Solver.Solver import Solver
+from ..Solver.RoadrunnerSolver import RoadrunnerSolver
+from ..Solver.ScipySolver import ScipySolver
 
 
 def compile_solver(solver: Solver, model_build=None, sbml_str: str = None, ant_str: str = None) -> None:
