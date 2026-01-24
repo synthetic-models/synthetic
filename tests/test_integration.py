@@ -13,6 +13,9 @@ This test validates the complete network generation and simulation workflow:
 import sys
 import os
 from pathlib import Path
+import pytest
+import pandas as pd
+import numpy as np
 
 # Add src directory to path for imports
 project_root = Path(__file__).parent.parent
@@ -23,9 +26,6 @@ sys.path.insert(0, str(src_path))
 # (the code imports from 'models.Solver' but package is 'synthetic')
 sys.path.insert(0, str(project_root))
 
-import pytest
-import pandas as pd
-import numpy as np
 
 
 def test_network_generation_workflow():
