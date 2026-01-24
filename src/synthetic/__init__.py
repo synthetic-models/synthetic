@@ -23,7 +23,11 @@ from .Solver.RoadrunnerSolver import RoadrunnerSolver
 
 # Utilities
 from .utils.make_feature_data import make_feature_data
-from .utils.make_target_data import make_target_data
+from .utils.make_target_data import (
+    make_target_data_with_params,
+    make_target_data_with_params_robust,
+    calculate_targets_from_timecourse,
+)
 from .utils.kinetic_tuner import KineticParameterTuner
 
 __all__ = [
@@ -51,6 +55,8 @@ __all__ = [
 
     # Utilities
     'make_feature_data',
-    'make_target_data',
+    'make_target_data_with_params',
+    'make_target_data_with_params_robust',
+    'calculate_targets_from_timecourse',
     'KineticParameterTuner',
 ]

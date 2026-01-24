@@ -16,8 +16,6 @@ from ..SyntheticGenUtils.PerturbationUtils import (
     generate_lognormal_perturbation_dataframe,
     generate_uniform_perturbation_dataframe,
     generate_lhs_perturbation_dataframe,
-    generate_perturbation_samples,
-    convert_perturbations_to_dataframe,
     validate_initial_values
 )
 from .conserve_rules_utils import resolve_species_range

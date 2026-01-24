@@ -27,8 +27,6 @@ from .ModelBuilder import ModelBuilder
 from .Solver.ScipySolver import ScipySolver
 from .Solver.RoadrunnerSolver import RoadrunnerSolver
 from .utils.kinetic_tuner import KineticParameterTuner
-from .utils.make_feature_data import make_feature_data
-from .utils.make_target_data import make_target_data
 
 
 class VirtualCell:
@@ -516,6 +514,7 @@ def make_dataset_drug_response(
         param_perturbation_type=param_perturbation_type,
         param_perturbation_params=param_perturbation_params,
         simulation_params=simulation_params,
+        target_method="fold_change_drug",
         seed=seed,
         param_seed=param_seed,
         resample_size=resample_size,
@@ -525,12 +524,11 @@ def make_dataset_drug_response(
         capture_all_species=capture_all_species,
         outcome_var=target_specie,
         verbose=verbose,
-        n_cores=1,
     )
 
     if return_details:
         # Return extended data structure
-        X = result['features'].values.astype(np.float64)
+        X = result["basal_data"].values.astype(np.float64)
         y = result['targets'].values.ravel().astype(np.float64)
         return {
             'X': X,

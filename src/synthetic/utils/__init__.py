@@ -25,38 +25,26 @@ from .make_feature_data import (
 )
 
 from .make_target_data import (
-    make_target_data,
-    make_target_data_diff_spec,
-    make_target_data_diff_build,
-    generate_target_data,  # deprecated, but exported for compatibility
-    generate_target_data_diff_spec,  # deprecated, but exported for compatibility
-    generate_target_data_diff_build  # deprecated, but exported for compatibility
+    make_target_data_with_params,
+    make_target_data_with_params_robust,
+    calculate_targets_from_timecourse,
 )
 
 from .make_timecourse_data import (
-    make_timecourse_data,
-    make_timecourse_data_diff_spec,
-    make_timecourse_data_diff_build,
-    make_timecourse_data_v3,
-    make_timecourse_data_diff_build_v3,
-    generate_model_timecourse_data,  # deprecated, but exported for compatibility
-    generate_model_timecourse_data_diff_spec,  # deprecated, but exported for compatibility
-    generate_model_timecourse_data_diff_build,  # deprecated, but exported for compatibility
-    generate_model_timecourse_data_v3,  # deprecated, but exported for compatibility
-    generate_model_timecourse_data_diff_build_v3  # deprecated, but exported for compatibility
+    generate_timecourse_data,
 )
 
 from .data_generation_helpers import (
     validate_simulation_params,
-    extract_species_from_model_spec,
     create_default_simulation_params,
     prepare_perturbation_values,
     check_parameter_set_compatibility,
     create_feature_target_pipeline,
-    make_target_data_with_params,
     make_data,
     make_data_extended,
-    generate_batch_alternatives
+    generate_batch_alternatives,
+    get_pre_drug_index,
+    filter_timecourse_to_drug_period,
 )
 
 __all__ = [
@@ -68,7 +56,7 @@ __all__ = [
     'ParameterRandomizer',
     'InitialConditionRandomizer',
     'KineticParameterTuner',
-    
+
     # New data generation utilities - make_* functions
     'make_feature_data',
     'make_feature_data_uniform',
@@ -76,37 +64,30 @@ __all__ = [
     'make_feature_data_lognormal',
     'make_feature_data_lhs',
     'validate_feature_data_params',
-    
-    'make_target_data',
-    'make_target_data_diff_spec',
-    'make_target_data_diff_build',
-    
-    'make_timecourse_data',
-    'make_timecourse_data_diff_spec',
-    'make_timecourse_data_diff_build',
-    'make_timecourse_data_v3',
-    'make_timecourse_data_diff_build_v3',
-    
+
+    'make_target_data_with_params',
+    'make_target_data_with_params_robust',
+    'calculate_targets_from_timecourse',
+
+    'generate_timecourse_data',
+
     # Helper functions
     'validate_simulation_params',
-    'extract_species_from_model_spec',
     'create_default_simulation_params',
     'prepare_perturbation_values',
     'check_parameter_set_compatibility',
     'create_feature_target_pipeline',
-    'make_target_data_with_params',
     'make_data',
     'make_data_extended',
     'generate_batch_alternatives',
-    
+    'get_pre_drug_index',
+    'filter_timecourse_to_drug_period',
+
     # Deprecated functions (for backward compatibility)
     'generate_feature_data_v3',
-    'generate_target_data',
-    'generate_target_data_diff_spec',
-    'generate_target_data_diff_build',
     'generate_model_timecourse_data',
     'generate_model_timecourse_data_diff_spec',
     'generate_model_timecourse_data_diff_build',
     'generate_model_timecourse_data_v3',
-    'generate_model_timecourse_data_diff_build_v3'
+    'generate_model_timecourse_data_diff_build_v3',
 ]

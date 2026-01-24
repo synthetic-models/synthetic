@@ -1,628 +1,320 @@
 """
-Time course data generation utilities.
+Timecourse data generation component.
 
-This module provides functions for generating time course data
-from model simulations.
+This module provides robust timecourse generation with error handling,
+resampling, and basal data collection.
 """
 
 import warnings
-from typing import Dict, Any, Optional, List, Union
+import logging
+from typing import Dict, Any, Optional, Tuple
 import pandas as pd
-import numpy as np
 from tqdm import tqdm
-from joblib import Parallel, delayed
 
 from ..Solver.Solver import Solver
-from ..Solver.ScipySolver import ScipySolver
-from ..Solver.RoadrunnerSolver import RoadrunnerSolver
-from ..ModelBuilder import ModelBuilder
-from ..Specs.BaseSpec import BaseSpec as ModelSpecification
+from ..Specs.BaseSpec import BaseSpec
+
+logger = logging.getLogger(__name__)
 
 
-def make_timecourse_data(
-    model_spec: ModelSpecification,
+def generate_timecourse_data(
+    model_spec: BaseSpec,
     solver: Solver,
     feature_df: pd.DataFrame,
+    parameter_df: pd.DataFrame = None,
     simulation_params: Dict[str, Any] = None,
-    capture_species: Union[str, List[str]] = 'all',
+    outcome_var: str = "Cp",
+    capture_all_species: bool = False,
+    verbose: bool = False,
+    drug_start_time: Optional[float] = None,
+    basal_time_offset: int = 2,
+    resample_size: int = 10,
+    max_retries: int = 3,
+    require_all_successful: bool = False,
     n_cores: int = 1,
-    verbose: bool = False
-) -> pd.DataFrame:
+) -> Dict[str, Any]:
     """
-    Generate time course data for a model.
-    
+    Generate timecourse data with robust error handling and resampling.
+
+    This is the core timecourse generation component that handles:
+    - Simulation execution with error handling
+    - Resampling of failed samples
+    - Basal (pre-drug) data collection
+    - Support for both single-species and all-species capture
+
     Args:
         model_spec: ModelSpecification object
-        solver: Solver object
-        feature_df: DataFrame of perturbed values
+        solver: Solver object (ScipySolver or RoadrunnerSolver)
+        feature_df: DataFrame of perturbed initial values
+        parameter_df: DataFrame of perturbed kinetic parameters (optional)
         simulation_params: Dictionary with 'start', 'end', 'points' keys
-        capture_species: 'all' or list of species to capture
-        n_cores: Number of cores for parallel processing (-1 for all cores)
+        outcome_var: Variable to extract as target
+        capture_all_species: If True, captures timecourses for all species.
+                           If False, captures only outcome variable.
         verbose: Whether to show progress bar
-        
+        drug_start_time: Time when drug treatment starts (default: midpoint)
+        basal_time_offset: Number of time points before drug for basal capture
+        resample_size: Number of alternative samples to generate when simulation fails
+        max_retries: Maximum number of resampling attempts per failed sample
+        require_all_successful: Whether to require all samples to succeed
+        n_cores: Number of cores (reserved for future use, currently ignored)
+
     Returns:
-        DataFrame with time course data for each perturbation
+        Dictionary with keys:
+            - 'features': Filtered feature DataFrame (successful samples only)
+            - 'parameters': Filtered parameter DataFrame (successful samples only, None if not provided)
+            - 'timecourse': Timecourse data (DataFrame if capture_all_species=True, list if False)
+            - 'basal_data': Basal snapshot DataFrame (None if capture_all_species=False)
+            - 'success_mask': Boolean Series indicating which original samples succeeded
+            - 'success_indices': List of indices of successful samples
+
+    Examples:
+        >>> result = generate_timecourse_data(
+        ...     model_spec=model_spec,
+        ...     solver=solver,
+        ...     feature_df=feature_df,
+        ...     simulation_params={'start': 0, 'end': 500, 'points': 100},
+        ...     capture_all_species=True
+        ... )
+        >>> successful_features = result['features']
+        >>> timecourse_df = result['timecourse']
+        >>> basal_df = result['basal_data']
     """
+    from .data_generation_helpers import (
+        validate_simulation_params,
+        get_pre_drug_index,
+        generate_batch_alternatives,
+    )
+
+    logger.info("Generating timecourse data with robust error handling...")
+
     # Set default simulation parameters
     if simulation_params is None:
-        simulation_params = {'start': 0, 'end': 500, 'points': 100}
-    
-    # Validate simulation parameters
-    if 'start' not in simulation_params or 'end' not in simulation_params or 'points' not in simulation_params:
-        raise ValueError('Simulation parameters must contain "start", "end" and "points" keys')
-    
-    start = simulation_params['start']
-    end = simulation_params['end']
-    points = simulation_params['points']
-    
-    # Determine species to capture
-    if capture_species == 'all':
-        species_to_capture = model_spec.A_species + model_spec.B_species + model_spec.C_species
-        # Also capture phosphorylated versions
-        species_to_capture_with_phospho = []
-        for s in species_to_capture:
-            species_to_capture_with_phospho.extend([s, s + 'p'])
-    else:
-        species_to_capture_with_phospho = []
-        for s in capture_species:
-            species_to_capture_with_phospho.extend([s, s + 'p'])
-    
-    def simulate_perturbation(i: int) -> Dict[str, np.ndarray]:
-        """Simulate a single perturbation and capture time courses."""
-        perturbed_values = feature_df.iloc[i].to_dict()
-        
-        # Set perturbed values and simulate
-        solver.set_state_values(perturbed_values)
-        res = solver.simulate(start, end, points)
-        
-        # Capture specified species
-        output = {}
-        for species in species_to_capture_with_phospho:
-            if species in res.columns:
-                output[species] = res[species].values
-        
-        return output
-    
-    # Use parallel processing if requested
-    if n_cores > 1 or n_cores == -1:
-        results = Parallel(n_jobs=n_cores)(
-            delayed(simulate_perturbation)(i)
-            for i in tqdm(range(feature_df.shape[0]), 
-                         desc='Simulating perturbations', 
-                         disable=not verbose)
+        simulation_params = {"start": 0, "end": 500, "points": 100}
+
+    validate_simulation_params(simulation_params)
+
+    start = simulation_params["start"]
+    end = simulation_params["end"]
+    points = simulation_params["points"]
+
+    # Calculate drug start time and basal index
+    used_drug_start_time = (
+        drug_start_time if drug_start_time is not None else (start + end) / 2
+    )
+    pre_drug_index = get_pre_drug_index(
+        simulation_params=simulation_params,
+        drug_start_time=used_drug_start_time,
+        offset=basal_time_offset,
+    )
+
+    # Determine species to capture if capture_all_species is True
+    species_to_capture = []
+    if capture_all_species:
+        try:
+            test_feature_values = feature_df.iloc[0].to_dict()
+            solver.set_state_values(test_feature_values)
+
+            if parameter_df is not None:
+                test_param_values = parameter_df.iloc[0].to_dict()
+                solver.set_parameter_values(test_param_values)
+
+            test_res = solver.simulate(start, end, points)
+            species_to_capture = [col for col in test_res.columns if col != "time"]
+
+            if outcome_var not in species_to_capture:
+                species_to_capture.append(outcome_var)
+        except Exception as e:
+            warnings.warn(f"Could not discover species from test simulation: {e}")
+
+    def simulate_single_sample(
+        feature_values: Dict[str, float],
+        param_values: Optional[Dict[str, float]] = None,
+    ) -> Tuple[Optional[pd.DataFrame], Optional[Dict[str, float]]]:
+        """Simulate a single sample and return results with basal snapshot."""
+        try:
+            solver.set_state_values(feature_values)
+            if param_values is not None:
+                solver.set_parameter_values(param_values)
+
+            res = solver.simulate(start, end, points)
+
+            # Collect basal snapshot if needed
+            basal_snapshot = None
+            if capture_all_species and species_to_capture:
+                basal_snapshot = {}
+                for species in species_to_capture:
+                    if species in res.columns:
+                        basal_snapshot[species] = float(
+                            res[species].iloc[pre_drug_index]
+                        )
+
+            return res, basal_snapshot
+        except RuntimeError as e:
+            if "CV_TOO_MUCH_WORK" in str(e) or "CVODE" in str(e):
+                return None, None
+            else:
+                raise
+        except Exception:
+            return None, None
+
+    # Sequential processing with error handling and resampling
+    successful_timecourses = []
+    successful_basal_data = []
+    successful_indices = []
+    successful_features = []
+    successful_params = [] if parameter_df is not None else None
+
+    failed_indices = []
+
+    pbar = tqdm(
+        range(feature_df.shape[0]), desc="Simulating perturbations", disable=not verbose
+    )
+
+    for i in pbar:
+        original_feature_values = feature_df.iloc[i].to_dict()
+        original_param_values = (
+            parameter_df.iloc[i].to_dict() if parameter_df is not None else None
         )
-        all_outputs = list(results)
-    else:
-        # Sequential processing
-        all_outputs = []
-        for i in tqdm(range(feature_df.shape[0]), 
-                     desc='Simulating perturbations', 
-                     disable=not verbose):
-            output = simulate_perturbation(i)
-            all_outputs.append(output)
-    
-    # Create output DataFrame
-    output_df = pd.DataFrame(all_outputs)
-    
-    return output_df
 
+        success = False
+        timecourse_result = None
+        basal_result = None
+        final_feature_values = original_feature_values
+        final_param_values = original_param_values
 
-def make_timecourse_data_diff_spec(
-    model_builds: List[ModelBuilder],
-    SolverClass: type[Solver],
-    feature_df: pd.DataFrame,
-    simulation_params: Dict[str, Any] = None,
-    capture_species: Union[str, List[str]] = 'all',
-    n_cores: int = 1,
-    verbose: bool = False
-) -> pd.DataFrame:
-    """
-    Generate time course data using different model specifications.
-    
-    Args:
-        model_builds: List of ModelBuilder objects (one per row in feature_df)
-        SolverClass: Solver class (ScipySolver or RoadrunnerSolver)
-        feature_df: DataFrame of perturbed values
-        simulation_params: Dictionary with 'start', 'end', 'points' keys
-        capture_species: 'all' or list of species to capture
-        n_cores: Number of cores for parallel processing (-1 for all cores)
-        verbose: Whether to show progress bar
-        
-    Returns:
-        DataFrame with time course data for each perturbation
-    """
-    # Set default simulation parameters
-    if simulation_params is None:
-        simulation_params = {'start': 0, 'end': 500, 'points': 100}
-    
-    # Validate simulation parameters
-    if 'start' not in simulation_params or 'end' not in simulation_params or 'points' not in simulation_params:
-        raise ValueError('Simulation parameters must contain "start", "end" and "points" keys')
-    
-    start = simulation_params['start']
-    end = simulation_params['end']
-    points = simulation_params['points']
-    
-    def simulate_perturbation(i: int) -> Dict[str, np.ndarray]:
-        """Simulate a single perturbation with specific model specification."""
-        perturbed_values = feature_df.iloc[i].to_dict()
-        model_build = model_builds[i]
-        
-        # Create and compile solver
-        solver = SolverClass()
-        sbml_str = model_build.get_sbml_model()
-        ant_str = model_build.get_antimony_model()
-        
-        if isinstance(solver, RoadrunnerSolver):
-            solver.compile(sbml_str)
-        elif isinstance(solver, ScipySolver):
-            solver.compile(ant_str)
+        # Try original values first
+        res, basal = simulate_single_sample(
+            original_feature_values, original_param_values
+        )
+
+        if res is not None:
+            success = True
+            timecourse_result = res
+            basal_result = basal
         else:
-            raise ValueError('Solver must be either ScipySolver or RoadrunnerSolver')
-        
-        # Set perturbed values and simulate
-        solver.set_state_values(perturbed_values)
-        res = solver.simulate(start, end, points)
-        
-        # Capture specified species
-        output = {}
-        if capture_species == 'all':
-            all_species = model_build.get_state_variables().keys()
-            for species in all_species:
-                output[species] = res[species].values
+            # Try resampling
+            for attempt in range(max_retries):
+                pbar.set_description(
+                    f"Simulating (resampling {i}, attempt {attempt + 1}/{max_retries})"
+                )
+
+                # Generate alternatives
+                feature_alternatives = generate_batch_alternatives(
+                    original_feature_values,
+                    "gaussian",
+                    {"std": 0.1},
+                    resample_size,
+                    42,
+                    attempt,
+                )
+
+                param_alternatives = None
+                if parameter_df is not None:
+                    param_alternatives = generate_batch_alternatives(
+                        original_param_values,
+                        "gaussian",
+                        {"std": 0.1},
+                        resample_size,
+                        42,
+                        attempt,
+                    )
+
+                # Test each alternative
+                for j in range(resample_size):
+                    alt_feature_values = feature_alternatives.iloc[j].to_dict()
+                    alt_param_values = (
+                        param_alternatives.iloc[j].to_dict()
+                        if param_alternatives is not None
+                        else None
+                    )
+
+                    res, basal = simulate_single_sample(
+                        alt_feature_values, alt_param_values
+                    )
+
+                    if res is not None:
+                        success = True
+                        timecourse_result = res
+                        basal_result = basal
+                        final_feature_values = alt_feature_values
+                        final_param_values = alt_param_values
+                        break
+
+                if success:
+                    break
+
+        if success:
+            # Extract timecourse
+            if capture_all_species:
+                timecourse_dict = {}
+                for species in species_to_capture:
+                    if species in timecourse_result.columns:
+                        timecourse_dict[species] = timecourse_result[species].values
+                successful_timecourses.append(timecourse_dict)
+                if basal_result is not None:
+                    successful_basal_data.append(basal_result)
+            else:
+                successful_timecourses.append(timecourse_result[outcome_var].values)
+
+            successful_indices.append(i)
+            successful_features.append(final_feature_values)
+            if parameter_df is not None:
+                successful_params.append(final_param_values)
         else:
-            for species in capture_species:
-                output[species] = res[species].values
-                phospho_species = species + 'p'
-                output[phospho_species] = res[phospho_species].values
-        
-        return output
-    
-    # Use parallel processing if requested
-    if n_cores > 1 or n_cores == -1:
-        results = Parallel(n_jobs=n_cores)(
-            delayed(simulate_perturbation)(i)
-            for i in tqdm(range(feature_df.shape[0]), 
-                         desc='Simulating perturbations', 
-                         disable=not verbose)
-        )
-        all_outputs = list(results)
+            failed_indices.append(i)
+            pbar.set_description(f"Simulating (failed: {len(failed_indices)})")
+
+    if failed_indices:
+        pbar.set_description(f"Simulating (completed, {len(failed_indices)} failed)")
     else:
-        # Sequential processing with error handling
-        all_outputs = []
-        for i in tqdm(range(feature_df.shape[0]), 
-                     desc='Simulating perturbations', 
-                     disable=not verbose):
-            try:
-                output = simulate_perturbation(i)
-                all_outputs.append(output)
-            except Exception as e:
-                if verbose:
-                    print(f'Error simulating perturbation {i}: {e}')
-                all_outputs.append({})
-    
-    # Create output DataFrame
-    output_df = pd.DataFrame(all_outputs)
-    
-    # Check if output is empty
-    if output_df.empty:
-        raise ValueError('Output dataframe is empty, check the model specifications and feature dataframe')
-    
-    return output_df
+        pbar.set_description("Simulating (completed)")
 
-
-def make_timecourse_data_diff_build(
-    model_spec: ModelSpecification,
-    solver: Solver,
-    feature_df: pd.DataFrame,
-    parameter_set: List[Dict[str, float]],
-    simulation_params: Dict[str, Any] = None,
-    capture_species: Union[str, List[str]] = 'all',
-    n_cores: int = 1,
-    verbose: bool = False
-) -> pd.DataFrame:
-    """
-    Generate time course data using different parameter sets.
-    
-    Args:
-        model_spec: ModelSpecification object
-        solver: Solver object
-        feature_df: DataFrame of perturbed values
-        parameter_set: List of parameter dictionaries (one per row in feature_df)
-        simulation_params: Dictionary with 'start', 'end', 'points' keys
-        capture_species: 'all' or list of species to capture
-        n_cores: Number of cores for parallel processing (-1 for all cores)
-        verbose: Whether to show progress bar
-        
-    Returns:
-        DataFrame with time course data for each perturbation
-    """
-    # Set default simulation parameters
-    if simulation_params is None:
-        simulation_params = {'start': 0, 'end': 500, 'points': 100}
-    
-    # Validate simulation parameters
-    if 'start' not in simulation_params or 'end' not in simulation_params or 'points' not in simulation_params:
-        raise ValueError('Simulation parameters must contain "start", "end" and "points" keys')
-    
-    # Validate parameter set length matches feature dataframe
-    if len(parameter_set) != feature_df.shape[0]:
-        raise ValueError(f'Parameter set length ({len(parameter_set)}) must match feature dataframe rows ({feature_df.shape[0]})')
-    
-    start = simulation_params['start']
-    end = simulation_params['end']
-    points = simulation_params['points']
-    
-    def simulate_perturbation(i: int) -> Dict[str, np.ndarray]:
-        """Simulate a single perturbation with specific parameter set."""
-        perturbed_values = feature_df.iloc[i].to_dict()
-        params = parameter_set[i]
-        
-        # Set perturbed values and parameters, then simulate
-        solver.set_state_values(perturbed_values)
-        solver.set_parameter_values(params)
-        res = solver.simulate(start, end, points)
-        
-        # Capture specified species
-        output = {}
-        if capture_species == 'all':
-            all_species = model_spec.A_species + model_spec.B_species + model_spec.C_species
-            for species in all_species:
-                output[species] = res[species].values
-                phospho_species = species + 'p'
-                output[phospho_species] = res[phospho_species].values
-        else:
-            for species in capture_species:
-                output[species] = res[species].values
-                phospho_species = species + 'p'
-                output[phospho_species] = res[phospho_species].values
-        
-        return output
-    
-    # Use parallel processing if requested
-    if n_cores > 1 or n_cores == -1:
-        results = Parallel(n_jobs=n_cores)(
-            delayed(simulate_perturbation)(i)
-            for i in tqdm(range(feature_df.shape[0]), 
-                         desc='Simulating perturbations', 
-                         disable=not verbose)
+    # Handle require_all_successful
+    if require_all_successful and failed_indices:
+        raise RuntimeError(
+            f"Failed to simulate {len(failed_indices)} samples after {max_retries} retries "
+            f"with resample_size={resample_size}. Failed indices: {failed_indices[:10]}{'...' if len(failed_indices) > 10 else ''}"
         )
-        all_outputs = list(results)
-    else:
-        # Sequential processing with error handling
-        all_outputs = []
-        for i in tqdm(range(feature_df.shape[0]), 
-                     desc='Simulating perturbations', 
-                     disable=not verbose):
-            try:
-                output = simulate_perturbation(i)
-                all_outputs.append(output)
-            except Exception as e:
-                if verbose:
-                    print(f'Error simulating perturbation {i}: {e}')
-                all_outputs.append({})
-    
-    # Create output DataFrame
-    output_df = pd.DataFrame(all_outputs)
-    
-    return output_df
 
+    # Create success mask
+    success_mask = pd.Series([False] * feature_df.shape[0])
+    success_mask.iloc[successful_indices] = True
 
-# Simplified versions for v3 API
-def make_timecourse_data_v3(
-    all_species: Dict[str, Any],
-    solver: Solver,
-    feature_df: pd.DataFrame,
-    simulation_params: Dict[str, Any] = None,
-    n_cores: int = 1,
-    verbose: bool = False
-) -> pd.DataFrame:
-    """
-    Generate time course data (v3 API).
-    
-    Simplified version that works with dictionary of all species.
-    
-    Args:
-        all_species: Dictionary of all species (keys are species names)
-        solver: Solver object
-        feature_df: DataFrame of perturbed values
-        simulation_params: Dictionary with 'start', 'end', 'points' keys
-        n_cores: Number of cores for parallel processing (-1 for all cores)
-        verbose: Whether to show progress bar
-        
-    Returns:
-        DataFrame with time course data for each perturbation
-    """
-    # Set default simulation parameters
-    if simulation_params is None:
-        simulation_params = {'start': 0, 'end': 500, 'points': 100}
-    
-    # Validate simulation parameters
-    if 'start' not in simulation_params or 'end' not in simulation_params or 'points' not in simulation_params:
-        raise ValueError('Simulation parameters must contain "start", "end" and "points" keys')
-    
-    start = simulation_params['start']
-    end = simulation_params['end']
-    points = simulation_params['points']
-    
-    def simulate_perturbation(i: int) -> Dict[str, np.ndarray]:
-        """Simulate a single perturbation."""
-        perturbed_values = feature_df.iloc[i].to_dict()
-        
-        # Set perturbed values and simulate
-        solver.set_state_values(perturbed_values)
-        res = solver.simulate(start, end, points)
-        
-        # Capture all species from the dictionary
-        output = {}
-        for species in all_species.keys():
-            if species in res.columns:
-                output[species] = res[species].values
-        
-        return output
-    
-    # Use parallel processing if requested
-    if n_cores > 1 or n_cores == -1:
-        results = Parallel(n_jobs=n_cores)(
-            delayed(simulate_perturbation)(i)
-            for i in tqdm(range(feature_df.shape[0]), 
-                         desc='Simulating perturbations', 
-                         disable=not verbose)
+    # Create output DataFrames
+    successful_feature_df = pd.DataFrame(successful_features, index=successful_indices)
+    successful_parameter_df = None
+    if parameter_df is not None:
+        successful_parameter_df = pd.DataFrame(
+            successful_params, index=successful_indices
         )
-        all_outputs = list(results)
-    else:
-        # Sequential processing
-        all_outputs = []
-        for i in tqdm(range(feature_df.shape[0]), 
-                     desc='Simulating perturbations', 
-                     disable=not verbose):
-            output = simulate_perturbation(i)
-            all_outputs.append(output)
-    
-    # Create output DataFrame
-    output_df = pd.DataFrame(all_outputs)
-    
-    return output_df
 
-
-def make_timecourse_data_diff_build_v3(
-    all_species: Dict[str, Any],
-    solver: Solver,
-    feature_df: pd.DataFrame,
-    parameter_set: List[Dict[str, float]],
-    simulation_params: Dict[str, Any] = None,
-    n_cores: int = 1,
-    verbose: bool = False
-) -> pd.DataFrame:
-    """
-    Generate time course data using different parameter sets (v3 API).
-    
-    Args:
-        all_species: Dictionary of all species (keys are species names)
-        solver: Solver object
-        feature_df: DataFrame of perturbed values
-        parameter_set: List of parameter dictionaries (one per row in feature_df)
-        simulation_params: Dictionary with 'start', 'end', 'points' keys
-        n_cores: Number of cores for parallel processing (-1 for all cores)
-        verbose: Whether to show progress bar
-        
-    Returns:
-        DataFrame with time course data for each perturbation
-    """
-    # Set default simulation parameters
-    if simulation_params is None:
-        simulation_params = {'start': 0, 'end': 500, 'points': 100}
-    
-    # Validate simulation parameters
-    if 'start' not in simulation_params or 'end' not in simulation_params or 'points' not in simulation_params:
-        raise ValueError('Simulation parameters must contain "start", "end" and "points" keys')
-    
-    # Validate parameter set length matches feature dataframe
-    if len(parameter_set) != feature_df.shape[0]:
-        raise ValueError(f'Parameter set length ({len(parameter_set)}) must match feature dataframe rows ({feature_df.shape[0]})')
-    
-    start = simulation_params['start']
-    end = simulation_params['end']
-    points = simulation_params['points']
-    
-    def simulate_perturbation(i: int) -> Dict[str, np.ndarray]:
-        """Simulate a single perturbation with specific parameter set."""
-        perturbed_values = feature_df.iloc[i].to_dict()
-        params = parameter_set[i]
-        
-        # Set perturbed values and parameters, then simulate
-        solver.set_state_values(perturbed_values)
-        solver.set_parameter_values(params)
-        res = solver.simulate(start, end, points)
-        
-        # Capture all species from the dictionary
-        output = {}
-        for species in all_species.keys():
-            if species in res.columns:
-                output[species] = res[species].values
-        
-        return output
-    
-    # Use parallel processing if requested
-    if n_cores > 1 or n_cores == -1:
-        results = Parallel(n_jobs=n_cores)(
-            delayed(simulate_perturbation)(i)
-            for i in tqdm(range(feature_df.shape[0]), 
-                         desc='Simulating perturbations', 
-                         disable=not verbose)
+    # Create timecourse output
+    if capture_all_species and successful_timecourses:
+        timecourse_data = pd.DataFrame(successful_timecourses, index=successful_indices)
+        basal_data = (
+            pd.DataFrame(successful_basal_data, index=successful_indices)
+            if successful_basal_data
+            else None
         )
-        all_outputs = list(results)
     else:
-        # Sequential processing with error handling
-        all_outputs = []
-        for i in tqdm(range(feature_df.shape[0]), 
-                     desc='Simulating perturbations', 
-                     disable=not verbose):
-            try:
-                output = simulate_perturbation(i)
-                all_outputs.append(output)
-            except Exception as e:
-                if verbose:
-                    print(f'Error simulating perturbation {i}: {e}')
-                all_outputs.append({})
-    
-    # Create output DataFrame
-    output_df = pd.DataFrame(all_outputs)
-    
-    return output_df
+        timecourse_data = successful_timecourses  # List of arrays
+        basal_data = None
 
-
-# Backward compatibility wrappers (with deprecation warnings)
-def generate_model_timecourse_data(
-    model_spec: ModelSpecification,
-    solver: Solver,
-    feature_df: pd.DataFrame,
-    simulation_params: Dict[str, Any] = None,
-    capture_species: Union[str, List[str]] = 'all',
-    n_cores: int = 1,
-    verbose: bool = False
-) -> pd.DataFrame:
-    """
-    DEPRECATED: Use make_timecourse_data instead.
-    
-    Backward compatibility wrapper for generate_model_timecourse_data.
-    """
-    warnings.warn(
-        "generate_model_timecourse_data is deprecated. Use make_timecourse_data instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    
-    return make_timecourse_data(
-        model_spec=model_spec,
-        solver=solver,
-        feature_df=feature_df,
-        simulation_params=simulation_params,
-        capture_species=capture_species,
-        n_cores=n_cores,
-        verbose=verbose
+    logger.info(
+        f"Timecourse generation completed: {len(successful_indices)}/{feature_df.shape[0]} samples succeeded"
     )
 
-
-def generate_model_timecourse_data_diff_spec(
-    model_builds: List[ModelBuilder],
-    SolverClass: type[Solver],
-    feature_df: pd.DataFrame,
-    simulation_params: Dict[str, Any] = None,
-    capture_species: Union[str, List[str]] = 'all',
-    n_cores: int = 1,
-    verbose: bool = False
-) -> pd.DataFrame:
-    """
-    DEPRECATED: Use make_timecourse_data_diff_spec instead.
-    
-    Backward compatibility wrapper for generate_model_timecourse_data_diff_spec.
-    """
-    warnings.warn(
-        "generate_model_timecourse_data_diff_spec is deprecated. Use make_timecourse_data_diff_spec instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    
-    return make_timecourse_data_diff_spec(
-        model_builds=model_builds,
-        SolverClass=SolverClass,
-        feature_df=feature_df,
-        simulation_params=simulation_params,
-        capture_species=capture_species,
-        n_cores=n_cores,
-        verbose=verbose
-    )
+    return {
+        "features": successful_feature_df,
+        "parameters": successful_parameter_df,
+        "timecourse": timecourse_data,
+        "basal_data": basal_data,
+        "success_mask": success_mask,
+        "success_indices": successful_indices,
+    }
 
 
-def generate_model_timecourse_data_diff_build(
-    model_spec: ModelSpecification,
-    solver: Solver,
-    feature_df: pd.DataFrame,
-    parameter_set: List[Dict[str, float]],
-    simulation_params: Dict[str, Any] = None,
-    capture_species: Union[str, List[str]] = 'all',
-    n_cores: int = 1,
-    verbose: bool = False
-) -> pd.DataFrame:
-    """
-    DEPRECATED: Use make_timecourse_data_diff_build instead.
-    
-    Backward compatibility wrapper for generate_model_timecourse_data_diff_build.
-    """
-    warnings.warn(
-        "generate_model_timecourse_data_diff_build is deprecated. Use make_timecourse_data_diff_build instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    
-    return make_timecourse_data_diff_build(
-        model_spec=model_spec,
-        solver=solver,
-        feature_df=feature_df,
-        parameter_set=parameter_set,
-        simulation_params=simulation_params,
-        capture_species=capture_species,
-        n_cores=n_cores,
-        verbose=verbose
-    )
-
-
-def generate_model_timecourse_data_v3(
-    all_species: Dict[str, Any],
-    solver: Solver,
-    feature_df: pd.DataFrame,
-    simulation_params: Dict[str, Any] = None,
-    n_cores: int = 1,
-    verbose: bool = False
-) -> pd.DataFrame:
-    """
-    DEPRECATED: Use make_timecourse_data_v3 instead.
-    
-    Backward compatibility wrapper for generate_model_timecourse_data_v3.
-    """
-    warnings.warn(
-        "generate_model_timecourse_data_v3 is deprecated. Use make_timecourse_data_v3 instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    
-    return make_timecourse_data_v3(
-        all_species=all_species,
-        solver=solver,
-        feature_df=feature_df,
-        simulation_params=simulation_params,
-        n_cores=n_cores,
-        verbose=verbose
-    )
-
-
-def generate_model_timecourse_data_diff_build_v3(
-    all_species: Dict[str, Any],
-    solver: Solver,
-    feature_df: pd.DataFrame,
-    parameter_set: List[Dict[str, float]],
-    simulation_params: Dict[str, Any] = None,
-    n_cores: int = 1,
-    verbose: bool = False
-) -> pd.DataFrame:
-    """
-    DEPRECATED: Use make_timecourse_data_diff_build_v3 instead.
-    
-    Backward compatibility wrapper for generate_model_timecourse_data_diff_build_v3.
-    """
-    warnings.warn(
-        "generate_model_timecourse_data_diff_build_v3 is deprecated. Use make_timecourse_data_diff_build_v3 instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    
-    return make_timecourse_data_diff_build_v3(
-        all_species=all_species,
-        solver=solver,
-        feature_df=feature_df,
-        parameter_set=parameter_set,
-        simulation_params=simulation_params,
-        n_cores=n_cores,
-        verbose=verbose
-    )
+__all__ = [
+    "generate_timecourse_data",
+]
