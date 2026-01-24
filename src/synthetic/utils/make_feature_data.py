@@ -340,8 +340,16 @@ def make_feature_data_conserve_rules(
             # Get shape parameter for this species (use middle_shape as fallback)
             shape = species_range.get(species, middle_shape)
             
+            # Handle zero or negative values for lognormal distribution
+            if initial_value <= 0:
+                # Use a small positive value instead of zero/negative
+                safe_initial_value = 1e-6
+                logger.warning(f"Species {species} has non-positive initial value {initial_value}, using {safe_initial_value} for lognormal perturbation")
+            else:
+                safe_initial_value = initial_value
+            
             # Generate lognormal sample with species-specific shape
-            mean = np.log(initial_value)
+            mean = np.log(safe_initial_value)
             sigma = shape
             perturbed_values[species] = rng.lognormal(mean, sigma)
         

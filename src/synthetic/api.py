@@ -19,6 +19,7 @@ Example usage:
 
 from typing import List, Dict, Tuple, Optional, Any, Union
 import numpy as np
+import pandas as pd
 
 from .Specs.DegreeInteractionSpec import DegreeInteractionSpec
 from .Specs.Drug import Drug
@@ -406,10 +407,10 @@ def make_dataset_drug_response(
     n: int,
     cell_model: VirtualCell,
     target_specie: str = 'Oa',
-    perturbation_type: str = 'gaussian',
+    perturbation_type: str = 'conserve_rules',
     perturbation_params: Optional[Dict[str, Any]] = None,
     parameter_values: Optional[Dict[str, float]] = None,
-    param_perturbation_type: str = 'none',
+    param_perturbation_type: str = 'lognormal',
     param_perturbation_params: Optional[Dict[str, Any]] = None,
     simulation_params: Optional[Dict[str, Any]] = None,
     seed: Optional[int] = None,
@@ -420,9 +421,12 @@ def make_dataset_drug_response(
     resample_size: int = 10,
     max_retries: int = 3,
     require_all_successful: bool = False,
-    return_details: bool = False,
-    capture_all_species: bool = False,
-) -> Union[Tuple[np.ndarray, np.ndarray], Dict[str, Any]]:
+    return_details: bool = True,
+    capture_all_species: bool = True,
+    exclude_outcome_from_features: bool = True,
+    exclude_activated_from_features: bool = True,
+    as_pandas: bool = True,
+) -> Union[Tuple[pd.DataFrame, pd.Series], Tuple[np.ndarray, np.ndarray], Dict[str, Any]]:
     """
     Generate synthetic drug response dataset.
 
@@ -453,13 +457,18 @@ def make_dataset_drug_response(
         require_all_successful: Whether to require all samples to succeed (default: False)
         return_details: If True, returns extended data structure with intermediate datasets (default: False)
         capture_all_species: If True, captures timecourses for all species in returned data.
+        as_pandas: If True (default), returns pandas DataFrame for X and Series for y with feature names.
+                  If False, returns numpy arrays for X and y.
 
     Returns:
-        If return_details=False: Tuple of (X, y) where X is shape (n_samples, n_features)
-            and y is shape (n_samples,)
+        If return_details=False: 
+            If as_pandas=True: Tuple of (X, y) where X is pandas DataFrame with feature names 
+                and y is pandas Series
+            If as_pandas=False: Tuple of (X, y) where X is numpy array (n_samples, n_features)
+                and y is numpy array (n_samples,)
         If return_details=True: Dictionary with keys:
-            - 'X': Feature matrix (n_samples, n_features)
-            - 'y': Target vector (n_samples,)
+            - 'X': Feature matrix (n_samples, n_features) - numpy array
+            - 'y': Target vector (n_samples,) - numpy array
             - 'features': Feature dataframe (initial values)
             - 'targets': Target dataframe (outcome values)
             - 'parameters': Kinetic parameters dataframe (None if not provided)
@@ -477,17 +486,34 @@ def make_dataset_drug_response(
     # Set default simulation parameters (use cell_model's simulation_end)
     if simulation_params is None:
         simulation_params = {'start': 0, 'end': cell_model._simulation_end, 'points': 101}
-
+    
     # Validate simulation parameters
     if 'start' not in simulation_params or 'end' not in simulation_params or 'points' not in simulation_params:
         raise ValueError('simulation_params must contain "start", "end", and "points" keys')
 
-    # Set default perturbation parameters
+    # Set default perturbation parameters for conserve_rules
     if perturbation_params is None:
-        perturbation_params = {'rsd': 0.2}
+        perturbation_params = {'shape': 0.5, 'base_shape': 0.01, 'max_shape': 0.5}
+    
+    # Auto-extract parameter values from cell model if not provided
+    if parameter_values is None:
+        parameter_values = cell_model.model.get_parameters()
+    
+    # Set default parameter perturbation parameters
+    if param_perturbation_params is None:
+        param_perturbation_params = {'shape': 0.1}
+    
+    # Pass model_spec to conserve_rules for auto-generation of species ranges
+    if perturbation_type == 'conserve_rules' and 'model_spec' not in perturbation_params:
+        perturbation_params = perturbation_params.copy()
+        perturbation_params['model_spec'] = cell_model.spec
 
     # Get initial values (excluding drugs)
     initial_values = cell_model.get_initial_values(exclude_drugs=True)
+    # Exclude any species with 'a' at the end of their name (outcome species and activated species)
+    # Since they should not be perturbed initially
+    initial_values = {k: v for k, v in initial_values.items() if not k.endswith('a')}
+    initial_values.pop('O')
 
     # Create and compile solver
     if solver_type == 'scipy':
@@ -527,19 +553,19 @@ def make_dataset_drug_response(
 
     if return_details:
         # Return extended data structure
-        X = result["basal_data"].values.astype(np.float64)
-        y = result['targets'].values.ravel().astype(np.float64)
-        return {
-            'X': X,
-            'y': y,
-            **result
-        }
-    else:
-        # Return sklearn-compatible format
-        feature_df, target_df = result
-        X = feature_df.values.astype(np.float64)
-        y = target_df.values.ravel().astype(np.float64)
+        X = result['basal_data']
+        if exclude_activated_from_features:
+            X = X[[col for col in X.columns if not col.endswith('a')]]
+        if exclude_outcome_from_features:
+            X = X.drop(columns=['O'])
+        y = pd.Series(result['targets'].values.ravel(), name=target_specie, index=result['targets'].index)
+        if not as_pandas:
+            X = X.values.astype(np.float64)
+            y = y.values.ravel().astype(np.float64)
+        
         return X, y
+    else: 
+        raise NotImplementedError("return_details=False is not implemented in this version.")
 
 
 __all__ = ['VirtualCell', 'Builder', 'make_dataset_drug_response']

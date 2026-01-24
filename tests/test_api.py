@@ -1,11 +1,12 @@
 """
-Integration tests for the high-level API.
+Integration tests for high-level API.
 
 Tests for VirtualCell, Builder, and make_dataset_drug_response functionality.
 """
 
 import pytest
 import numpy as np
+import pandas as pd
 from synthetic import Builder, VirtualCell, make_dataset_drug_response
 
 
@@ -455,3 +456,119 @@ class TestBuilder:
         assert vc._name == "TestCell"
         assert vc._random_seed == 123
         assert vc._feedback_density == 0.7
+
+
+class TestPandasOutput:
+    """Tests for pandas DataFrame/Series output functionality."""
+
+    def test_default_returns_pandas(self):
+        """Test that make_dataset_drug_response() returns pandas by default."""
+        vc = Builder.specify(degree_cascades=[1, 2], random_seed=42)
+        
+        X, y = make_dataset_drug_response(n=10, cell_model=vc, seed=42, verbose=False)
+        
+        # Check types
+        assert isinstance(X, pd.DataFrame), f"Expected DataFrame, got {type(X)}"
+        assert isinstance(y, pd.Series), f"Expected Series, got {type(y)}"
+        
+        # Check shapes
+        assert X.shape[0] == 10
+        assert y.shape[0] == 10
+        assert X.shape[1] == len(vc.get_species_names())
+        
+        # Check that X has column names (feature names)
+        assert len(X.columns) > 0
+        assert all(isinstance(col, str) for col in X.columns)
+        
+        # Check that y has a name
+        assert y.name is not None
+
+    def test_explicit_as_pandas_true(self):
+        """Test explicit as_pandas=True returns pandas objects."""
+        vc = Builder.specify(degree_cascades=[1, 2], random_seed=42)
+        
+        X, y = make_dataset_drug_response(n=10, cell_model=vc, as_pandas=True, seed=42, verbose=False)
+        
+        assert isinstance(X, pd.DataFrame)
+        assert isinstance(y, pd.Series)
+
+    def test_as_pandas_false_returns_numpy(self):
+        """Test as_pandas=False returns numpy arrays."""
+        vc = Builder.specify(degree_cascades=[1, 2], random_seed=42)
+        
+        X, y = make_dataset_drug_response(n=10, cell_model=vc, as_pandas=False, seed=42, verbose=False)
+        
+        assert isinstance(X, np.ndarray), f"Expected ndarray, got {type(X)}"
+        assert isinstance(y, np.ndarray), f"Expected ndarray, got {type(y)}"
+        assert X.ndim == 2
+        assert y.ndim == 1
+
+    def test_values_are_equivalent(self):
+        """Test that pandas and numpy outputs contain equivalent values."""
+        vc = Builder.specify(degree_cascades=[1, 2], random_seed=42)
+        
+        # Get pandas output
+        X_pandas, y_pandas = make_dataset_drug_response(n=10, cell_model=vc, as_pandas=True, seed=42, verbose=False)
+        
+        # Get numpy output
+        X_numpy, y_numpy = make_dataset_drug_response(n=10, cell_model=vc, as_pandas=False, seed=42, verbose=False)
+        
+        # Check that values are identical
+        np.testing.assert_array_equal(X_pandas.values, X_numpy)
+        np.testing.assert_array_equal(y_pandas.values, y_numpy)
+
+    def test_pandas_output_has_feature_names(self):
+        """Test that pandas DataFrame contains meaningful feature names."""
+        vc = Builder.specify(degree_cascades=[1, 2], random_seed=42)
+        
+        X, y = make_dataset_drug_response(n=5, cell_model=vc, seed=42, verbose=False)
+        
+        # Get expected feature names
+        expected_features = vc.get_species_names()
+        
+        # Check that columns match expected features
+        assert list(X.columns) == expected_features
+        
+        # Check that column names are meaningful (not just indices)
+        assert all(len(col) > 1 for col in X.columns)  # Not just '0', '1', etc.
+        assert all(col.startswith(('R', 'O', 'E')) for col in X.columns)  # Species naming convention
+
+    def test_return_details_ignores_as_pandas(self):
+        """Test that return_details=True ignores as_pandas parameter."""
+        vc = Builder.specify(degree_cascades=[1, 2], random_seed=42)
+        
+        result = make_dataset_drug_response(n=5, cell_model=vc, return_details=True, as_pandas=True, seed=42, verbose=False)
+        
+        # Should return dictionary
+        assert isinstance(result, dict)
+        
+        # X and y in dictionary should be numpy arrays regardless of as_pandas
+        assert isinstance(result['X'], np.ndarray)
+        assert isinstance(result['y'], np.ndarray)
+        
+        # Should contain other expected keys
+        assert 'features' in result
+        assert 'targets' in result
+        assert 'metadata' in result
+
+    def test_pandas_with_different_solvers(self):
+        """Test pandas output works with both solvers."""
+        vc = Builder.specify(degree_cascades=[1, 2], random_seed=42)
+        
+        # Test scipy solver
+        X_scipy, y_scipy = make_dataset_drug_response(
+            n=5, cell_model=vc, solver_type='scipy', as_pandas=True, seed=42, verbose=False
+        )
+        assert isinstance(X_scipy, pd.DataFrame)
+        assert isinstance(y_scipy, pd.Series)
+        
+        # Test roadrunner solver
+        X_rr, y_rr = make_dataset_drug_response(
+            n=5, cell_model=vc, solver_type='roadrunner', as_pandas=True, seed=42, verbose=False
+        )
+        assert isinstance(X_rr, pd.DataFrame)
+        assert isinstance(y_rr, pd.Series)
+        
+        # Shapes should be the same
+        assert X_scipy.shape == X_rr.shape
+        assert y_scipy.shape == y_rr.shape
