@@ -357,7 +357,7 @@ class Builder:
         degree_cascades: List[int],
         name: str = "VirtualCell",
         random_seed: Optional[int] = None,
-        feedback_density: float = 0.5,
+        feedback_density: float = 1,
         auto_compile: bool = True,
         auto_drug: bool = True,
         drug_name: str = "D",
