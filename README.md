@@ -55,6 +55,54 @@ print(f"Feature matrix shape: {X.shape}")  # (1000, n_features)
 print(f"Target vector shape: {y.shape}")    # (1000,)
 ```
 
+## Examples
+
+The `examples/` directory contains practical examples demonstrating various features of Synthetic:
+
+### create_dataset.py
+
+Basic example showing how to generate a synthetic drug response dataset and analyze feature correlations.
+
+```bash
+python examples/create_dataset.py
+```
+
+**Demonstrates:**
+- Creating a virtual cell model with custom network topology
+- Generating sklearn-compatible datasets
+- Calculating Pearson correlations between features and targets
+- Identifying predictive features in the network
+
+### export_model_sbml.py
+
+Shows how to export synthetic models to standard SBML and Antimony formats for interoperability with other tools.
+
+```bash
+python examples/export_model_sbml.py
+```
+
+**Demonstrates:**
+- Creating a virtual cell model
+- Accessing the underlying ModelBuilder
+- Exporting models to SBML format (for COPASI, libRoadRunner, etc.)
+- Exporting models to Antimony format (human-readable)
+- Retrieving model strings for programmatic use
+
+### detailed_examples.md
+
+Comprehensive guide with detailed workflows and advanced use cases, including:
+
+- **Feature correlation analysis** - Complete workflow with CSV export
+- **Combination therapy** - Testing multi-drug interactions
+- Step-by-step explanations of each workflow
+
+View the guide:
+```bash
+cat examples/detailed_examples.md
+```
+
+or open it in your preferred markdown viewer.
+
 ## API Overview
 
 ### VirtualCell
