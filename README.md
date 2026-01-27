@@ -16,6 +16,28 @@ cd Synthetic
 uv sync
 ```
 
+### Alpha Testing
+
+For lab members participating in alpha testing, install directly from the lab's GitHub repository:
+
+```bash
+pip install git+https://github.com/IntegratedNetworkModellingLab/Synthetic.git
+```
+
+To install a specific version or commit:
+
+```bash
+pip install git+https://github.com/IntegratedNetworkModellingLab/Synthetic.git@v0.1.0
+# or
+pip install git+https://github.com/IntegratedNetworkModellingLab/Synthetic.git@<commit-hash>
+```
+
+For lab members with write access, you can use SSH:
+
+```bash
+pip install git+ssh://git@github.com/IntegratedNetworkModellingLab/Synthetic.git
+```
+
 ## Quick Start
 
 The high-level API provides a simple interface for creating virtual cell models and generating sklearn-compatible datasets:
