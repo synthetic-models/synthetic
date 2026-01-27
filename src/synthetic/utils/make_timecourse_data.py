@@ -1,8 +1,8 @@
 """
 Timecourse data generation component.
 
-This module provides robust timecourse generation with error handling,
-resampling, and basal data collection.
+This module provides robust timecourse generation with error handling
+and basal data collection.
 """
 
 import warnings
@@ -28,17 +28,14 @@ def generate_timecourse_data(
     verbose: bool = False,
     drug_start_time: Optional[float] = None,
     basal_time_offset: int = 2,
-    resample_size: int = 10,
-    max_retries: int = 3,
     require_all_successful: bool = False,
     n_cores: int = 1,
 ) -> Dict[str, Any]:
     """
-    Generate timecourse data with robust error handling and resampling.
+    Generate timecourse data with error handling.
 
     This is the core timecourse generation component that handles:
     - Simulation execution with error handling
-    - Resampling of failed samples
     - Basal (pre-drug) data collection
     - Support for both single-species and all-species capture
 
@@ -54,8 +51,6 @@ def generate_timecourse_data(
         verbose: Whether to show progress bar
         drug_start_time: Time when drug treatment starts (default: midpoint)
         basal_time_offset: Number of time points before drug for basal capture
-        resample_size: Number of alternative samples to generate when simulation fails
-        max_retries: Maximum number of resampling attempts per failed sample
         require_all_successful: Whether to require all samples to succeed
         n_cores: Number of cores (reserved for future use, currently ignored)
 
@@ -83,14 +78,15 @@ def generate_timecourse_data(
     from .data_generation_helpers import (
         validate_simulation_params,
         get_pre_drug_index,
-        generate_batch_alternatives,
     )
 
     logger.info("Generating timecourse data with robust error handling...")
 
     # Set default simulation parameters
     if simulation_params is None:
-        simulation_params = {"start": 0, "end": 500, "points": 100}
+        raise ValueError(
+            "generate_timecourse_data(): simulation_params must be provided with 'start', 'end', and 'points'."
+        )
 
     validate_simulation_params(simulation_params)
 
@@ -158,7 +154,7 @@ def generate_timecourse_data(
         except Exception:
             return None, None
 
-    # Sequential processing with error handling and resampling
+    # Sequential processing with error handling
     successful_timecourses = []
     successful_basal_data = []
     successful_indices = []
@@ -177,90 +173,28 @@ def generate_timecourse_data(
             parameter_df.iloc[i].to_dict() if parameter_df is not None else None
         )
 
-        success = False
-        timecourse_result = None
-        basal_result = None
-        final_feature_values = original_feature_values
-        final_param_values = original_param_values
-
-        # Try original values first
+        # Simulate single sample
         res, basal = simulate_single_sample(
             original_feature_values, original_param_values
         )
 
         if res is not None:
-            success = True
-            timecourse_result = res
-            basal_result = basal
-        else:
-            # Try resampling
-            for attempt in range(max_retries):
-                pbar.set_description(
-                    f"Simulating (resampling {i}, attempt {attempt + 1}/{max_retries})"
-                )
-
-                # Generate alternatives
-                feature_alternatives = generate_batch_alternatives(
-                    original_feature_values,
-                    "gaussian",
-                    {"std": 0.1},
-                    resample_size,
-                    42,
-                    attempt,
-                )
-
-                param_alternatives = None
-                if parameter_df is not None:
-                    param_alternatives = generate_batch_alternatives(
-                        original_param_values,
-                        "gaussian",
-                        {"std": 0.1},
-                        resample_size,
-                        42,
-                        attempt,
-                    )
-
-                # Test each alternative
-                for j in range(resample_size):
-                    alt_feature_values = feature_alternatives.iloc[j].to_dict()
-                    alt_param_values = (
-                        param_alternatives.iloc[j].to_dict()
-                        if param_alternatives is not None
-                        else None
-                    )
-
-                    res, basal = simulate_single_sample(
-                        alt_feature_values, alt_param_values
-                    )
-
-                    if res is not None:
-                        success = True
-                        timecourse_result = res
-                        basal_result = basal
-                        final_feature_values = alt_feature_values
-                        final_param_values = alt_param_values
-                        break
-
-                if success:
-                    break
-
-        if success:
             # Extract timecourse
             if capture_all_species:
                 timecourse_dict = {}
                 for species in species_to_capture:
-                    if species in timecourse_result.columns:
-                        timecourse_dict[species] = timecourse_result[species].values
+                    if species in res.columns:
+                        timecourse_dict[species] = res[species].values
                 successful_timecourses.append(timecourse_dict)
-                if basal_result is not None:
-                    successful_basal_data.append(basal_result)
+                if basal is not None:
+                    successful_basal_data.append(basal)
             else:
-                successful_timecourses.append(timecourse_result[outcome_var].values)
+                successful_timecourses.append(res[outcome_var].values)
 
             successful_indices.append(i)
-            successful_features.append(final_feature_values)
+            successful_features.append(original_feature_values)
             if parameter_df is not None:
-                successful_params.append(final_param_values)
+                successful_params.append(original_param_values)
         else:
             failed_indices.append(i)
             pbar.set_description(f"Simulating (failed: {len(failed_indices)})")
@@ -273,8 +207,7 @@ def generate_timecourse_data(
     # Handle require_all_successful
     if require_all_successful and failed_indices:
         raise RuntimeError(
-            f"Failed to simulate {len(failed_indices)} samples after {max_retries} retries "
-            f"with resample_size={resample_size}. Failed indices: {failed_indices[:10]}{'...' if len(failed_indices) > 10 else ''}"
+            f"Failed to simulate {len(failed_indices)} samples. Failed indices: {failed_indices[:10]}{'...' if len(failed_indices) > 10 else ''}"
         )
 
     # Create success mask
