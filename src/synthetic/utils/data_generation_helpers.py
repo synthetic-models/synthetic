@@ -258,6 +258,37 @@ def create_feature_target_pipeline(
     return feature_df, target_df
 
 
+def generate_batch_alternatives(
+    base_values: Dict[str, float],
+    perturbation_type: str,
+    perturbation_params: Dict[str, Any],
+    batch_size: int,
+    base_seed: int,
+    attempt: int,
+) -> pd.DataFrame:
+    """
+    Generate a batch of alternative values for resampling.
+
+    Args:
+        base_values: Dictionary of base values to perturb
+        perturbation_type: Type of perturbation ('uniform', 'gaussian', 'lognormal', 'lhs')
+        perturbation_params: Parameters for perturbation
+        batch_size: Number of alternative samples to generate
+        base_seed: Base random seed
+        attempt: Resampling attempt number (used to generate unique seeds)
+
+    Returns:
+        DataFrame with batch_size alternative samples
+    """
+    # Use a unique seed for each resampling attempt
+    alt_seed = base_seed + 1000 * attempt + batch_size
+    return make_feature_data(
+        initial_values=base_values,
+        perturbation_type=perturbation_type,
+        perturbation_params=perturbation_params,
+        n_samples=batch_size,
+        seed=alt_seed,
+    )
 
 
 # Unified function that returns both feature and target data
@@ -276,6 +307,8 @@ def make_data(
     basal_time_offset: int = 2,
     seed: Optional[int] = None,
     param_seed: Optional[int] = None,
+    resample_size: int = 10,
+    max_retries: int = 3,
     require_all_successful: bool = False,
     return_details: bool = False,
     capture_all_species: bool = False,
@@ -283,7 +316,7 @@ def make_data(
     **kwargs,
 ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], Dict[str, Any]]:
     """
-    Generate both feature and target data in one call with error handling.
+    Generate both feature and target data in one call with robust error handling.
 
     This function orchestrates the three-component data generation pattern:
     1. Feature data generation (via make_feature_data)
@@ -303,6 +336,8 @@ def make_data(
         simulation_params: Simulation parameters (optional)
         seed: Random seed for feature generation
         param_seed: Random seed for parameter generation (optional, uses seed if not provided)
+        resample_size: Number of alternative samples to generate when a simulation fails (default: 10)
+        max_retries: Maximum number of resampling attempts per failed index (default: 3)
         require_all_successful: Whether to require all samples to succeed (default: False)
         return_details: If True, returns extended data structure with intermediate datasets (default: False)
         capture_all_species: If True, captures timecourses for all species in DataFrame format.
@@ -346,7 +381,8 @@ def make_data(
         ...     simulation_params={'start': 0, 'end': 10000, 'points': 101},
         ...     seed=42,
         ...     outcome_var='Oa',
-        ...     require_all_successful=True,
+        ...     resample_size=10,
+        ...     max_retries=3,
         ...     return_details=True,
         ...     capture_all_species=True  # Capture timecourses for all species
         ... )
@@ -405,6 +441,8 @@ def make_data(
             target_method=target_method,
             drug_start_time=drug_start_time,
             basal_time_offset=basal_time_offset,
+            resample_size=resample_size,
+            max_retries=max_retries,
             require_all_successful=require_all_successful,
             return_dict=True,  # Get full dictionary output
         )
@@ -497,6 +535,7 @@ def make_data(
             "perturbation_type": perturbation_type,
             "capture_all_species": capture_all_species,
             "target_method": target_method,
+            "resampling_used": any(failed_indices),
             "simulation_params": simulation_params,
             "drug_start_time": used_drug_start_time,
             "pre_drug_index": pre_drug_index,
@@ -530,6 +569,8 @@ def make_data_extended(
     basal_time_offset: int = 2,
     seed: Optional[int] = None,
     param_seed: Optional[int] = None,
+    resample_size: int = 10,
+    max_retries: int = 3,
     require_all_successful: bool = False,
     capture_all_species: bool = True,
     target_method: str = "last_point",
@@ -556,6 +597,8 @@ def make_data_extended(
         simulation_params: Simulation parameters (optional)
         seed: Random seed for feature generation
         param_seed: Random seed for parameter generation (optional, uses seed if not provided)
+        resample_size: Number of alternative samples to generate when a simulation fails (default: 10)
+        max_retries: Maximum number of resampling attempts per failed index (default: 3)
         require_all_successful: Whether to require all samples to succeed (default: False)
         capture_all_species: If True (default), captures timecourses for all species in DataFrame format.
                            If False, captures only outcome variable timecourse as list of arrays.
@@ -613,6 +656,8 @@ def make_data_extended(
         basal_time_offset=basal_time_offset,
         seed=seed,
         param_seed=param_seed,
+        resample_size=resample_size,
+        max_retries=max_retries,
         require_all_successful=require_all_successful,
         return_details=True,
         capture_all_species=capture_all_species,

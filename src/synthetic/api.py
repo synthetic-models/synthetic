@@ -418,6 +418,8 @@ def make_dataset_drug_response(
     solver_type: str = 'scipy',
     jit: bool = True,
     verbose: bool = False,
+    resample_size: int = 10,
+    max_retries: int = 3,
     require_all_successful: bool = False,
     return_details: bool = True,
     capture_all_species: bool = True,
@@ -450,6 +452,8 @@ def make_dataset_drug_response(
         solver_type: Type of solver ('scipy' or 'roadrunner')
         jit: Whether to use JIT compilation (only for scipy solver)
         verbose: Whether to show progress bar
+        resample_size: Number of alternative samples to generate when a simulation fails (default: 10)
+        max_retries: Maximum number of resampling attempts per failed index (default: 3)
         require_all_successful: Whether to require all samples to succeed (default: False)
         return_details: If True, returns extended data structure with intermediate datasets (default: False)
         capture_all_species: If True, captures timecourses for all species in returned data.
@@ -538,6 +542,8 @@ def make_dataset_drug_response(
         target_method="fold_change_drug",
         seed=seed,
         param_seed=param_seed,
+        resample_size=resample_size,
+        max_retries=max_retries,
         require_all_successful=require_all_successful,
         return_details=return_details,
         capture_all_species=capture_all_species,

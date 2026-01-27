@@ -2,7 +2,7 @@
 Target data generation component.
 
 This module provides functions for generating target data from timecourses,
-including robust error handling for CVODE errors.
+including robust error handling and resampling.
 """
 
 import warnings
@@ -334,6 +334,8 @@ def make_target_data_with_params_robust(
     target_method: str = "last_point",
     drug_start_time: Optional[float] = None,
     basal_time_offset: int = 2,
+    resample_size: int = 10,
+    max_retries: int = 3,
     require_all_successful: bool = False,
     return_dict: bool = False,
 ) -> Union[
@@ -345,7 +347,7 @@ def make_target_data_with_params_robust(
     by removing failed samples and maintaining data alignment.
 
     This function uses the three-component pattern:
-    1. Generates timecourse data with error handling
+    1. Generates timecourse data with robust error handling
     2. Calculates target values from timecourses
     3. Returns results in requested format
 
@@ -365,6 +367,8 @@ def make_target_data_with_params_robust(
                       'fold_change_drug' returns fold change from drug start to end time.
         drug_start_time: Time when drug treatment starts (default: midpoint)
         basal_time_offset: Number of time points before drug for basal capture
+        resample_size: Number of alternative samples to generate when simulation fails
+        max_retries: Maximum number of resampling attempts per failed sample
         require_all_successful: Whether to require all samples to succeed
         return_dict: If True, returns dictionary format with additional metadata
 
@@ -412,6 +416,8 @@ def make_target_data_with_params_robust(
         verbose=verbose,
         drug_start_time=drug_start_time,
         basal_time_offset=basal_time_offset,
+        resample_size=resample_size,
+        max_retries=max_retries,
         require_all_successful=require_all_successful,
         n_cores=n_cores,
     )
