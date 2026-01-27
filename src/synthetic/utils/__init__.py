@@ -42,7 +42,6 @@ from .data_generation_helpers import (
     create_feature_target_pipeline,
     make_data,
     make_data_extended,
-    generate_batch_alternatives,
     get_pre_drug_index,
     filter_timecourse_to_drug_period,
 )
@@ -79,7 +78,6 @@ __all__ = [
     'create_feature_target_pipeline',
     'make_data',
     'make_data_extended',
-    'generate_batch_alternatives',
     'get_pre_drug_index',
     'filter_timecourse_to_drug_period',
 
