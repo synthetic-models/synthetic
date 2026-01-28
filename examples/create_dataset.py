@@ -2,7 +2,7 @@ from synthetic import Builder, make_dataset_drug_response
 
 vc = Builder.specify([3,10,20])
 
-X, y = make_dataset_drug_response(100, cell_model=vc, verbose=True)
+X, y = make_dataset_drug_response(100, cell_model=vc, verbose=True, n_cores=-1)
 
 print("Feature data shape:", X.shape)
 print("Target data shape:", y.shape)

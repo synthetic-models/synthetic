@@ -123,6 +123,8 @@ def generate_timecourse_data(
         except Exception as e:
             warnings.warn(f"Could not discover species from test simulation: {e}")
 
+    from ..SyntheticGenUtils.ParallelUtils import run_parallel_with_error_handling
+    
     def simulate_single_sample(
         feature_values: Dict[str, float],
         param_values: Optional[Dict[str, float]] = None,
@@ -154,20 +156,8 @@ def generate_timecourse_data(
         except Exception:
             return None, None
 
-    # Sequential processing with error handling
-    successful_timecourses = []
-    successful_basal_data = []
-    successful_indices = []
-    successful_features = []
-    successful_params = [] if parameter_df is not None else None
-
-    failed_indices = []
-
-    pbar = tqdm(
-        range(feature_df.shape[0]), desc="Simulating perturbations", disable=not verbose
-    )
-
-    for i in pbar:
+    def simulate_single_sample_wrapper(i: int) -> Tuple[int, Optional[pd.DataFrame], Optional[Dict[str, float]]]:
+        """Wrapper function for parallel execution that includes index for result aggregation."""
         original_feature_values = feature_df.iloc[i].to_dict()
         original_param_values = (
             parameter_df.iloc[i].to_dict() if parameter_df is not None else None
@@ -177,7 +167,40 @@ def generate_timecourse_data(
         res, basal = simulate_single_sample(
             original_feature_values, original_param_values
         )
+        
+        return i, res, basal
 
+    # Process simulations (parallel or sequential)
+    if n_cores > 1 or n_cores == -1:
+        # Parallel processing with error handling
+        results = run_parallel_with_error_handling(
+            simulation_function=simulate_single_sample_wrapper,
+            n_iterations=feature_df.shape[0],
+            n_cores=n_cores,
+            verbose=verbose,
+            description="Simulating perturbations",
+            error_prefix="Error simulating perturbation"
+        )
+        # results contains list of (i, res, basal) tuples where res/basal may be None for failures
+    else:
+        # Sequential processing
+        results = []
+        for i in tqdm(
+            range(feature_df.shape[0]), 
+            desc="Simulating perturbations", 
+            disable=not verbose
+        ):
+            results.append(simulate_single_sample_wrapper(i))
+
+    # Process results (both parallel and sequential paths end up here)
+    successful_timecourses = []
+    successful_basal_data = []
+    successful_indices = []
+    successful_features = []
+    successful_params = [] if parameter_df is not None else None
+    failed_indices = []
+
+    for i, res, basal in results:
         if res is not None:
             # Extract timecourse
             if capture_all_species:
@@ -192,17 +215,14 @@ def generate_timecourse_data(
                 successful_timecourses.append(res[outcome_var].values)
 
             successful_indices.append(i)
-            successful_features.append(original_feature_values)
+            successful_features.append(feature_df.iloc[i].to_dict())
             if parameter_df is not None:
-                successful_params.append(original_param_values)
+                successful_params.append(parameter_df.iloc[i].to_dict())
         else:
             failed_indices.append(i)
-            pbar.set_description(f"Simulating (failed: {len(failed_indices)})")
 
-    if failed_indices:
-        pbar.set_description(f"Simulating (completed, {len(failed_indices)} failed)")
-    else:
-        pbar.set_description("Simulating (completed)")
+    if failed_indices and verbose:
+        logger.info(f"Failed to simulate {len(failed_indices)} samples.")
 
     # Handle require_all_successful
     if require_all_successful and failed_indices:

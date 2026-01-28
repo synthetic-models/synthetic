@@ -280,6 +280,8 @@ def make_data(
     return_details: bool = False,
     capture_all_species: bool = False,
     target_method: str = "last_point",
+    n_cores: int = 1,
+    verbose: bool = False,
     **kwargs,
 ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], Dict[str, Any]]:
     """
@@ -406,6 +408,7 @@ def make_data(
             drug_start_time=drug_start_time,
             basal_time_offset=basal_time_offset,
             require_all_successful=require_all_successful,
+            n_cores=n_cores,
             return_dict=True,  # Get full dictionary output
         )
 

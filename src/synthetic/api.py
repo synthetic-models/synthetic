@@ -418,6 +418,7 @@ def make_dataset_drug_response(
     solver_type: str = 'scipy',
     jit: bool = True,
     verbose: bool = False,
+    n_cores: int = 1,
     require_all_successful: bool = False,
     return_details: bool = True,
     capture_all_species: bool = True,
@@ -543,6 +544,7 @@ def make_dataset_drug_response(
         capture_all_species=capture_all_species,
         outcome_var=target_specie,
         verbose=verbose,
+        n_cores=n_cores,
     )
 
     if return_details:
