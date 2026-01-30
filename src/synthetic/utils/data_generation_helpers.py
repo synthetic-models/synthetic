@@ -11,6 +11,8 @@ from typing import Dict, Any, List, Optional, Tuple, Union
 import pandas as pd
 import numpy as np
 
+from ..Solver.Solver import Solver
+
 # Import from new component modules
 from .make_feature_data import make_feature_data
 from .make_target_data import (
@@ -266,8 +268,7 @@ def make_data(
     perturbation_type: str,
     perturbation_params: Dict[str, Any],
     n_samples: int,
-    model_spec=None,
-    solver=None,
+    solver: Optional[Solver] = None,
     parameter_values: Optional[Dict[str, float]] = None,
     param_perturbation_type: str = "none",
     param_perturbation_params: Optional[Dict[str, Any]] = None,
@@ -297,8 +298,7 @@ def make_data(
         perturbation_type: Type of perturbation ('uniform', 'gaussian', 'lognormal', 'lhs')
         perturbation_params: Parameters for perturbation
         n_samples: Number of samples
-        model_spec: Model specification (required for target generation)
-        solver: Solver object (required for target generation)
+        solver: Solver object (required for target generation) - can load any SBML/Antimony model
         parameter_values: Dictionary of kinetic parameter values (optional)
         param_perturbation_type: Type of perturbation for kinetic parameters ('none', 'uniform', 'gaussian', 'lognormal', 'lhs')
         param_perturbation_params: Parameters for kinetic parameter perturbation (optional)
@@ -325,12 +325,16 @@ def make_data(
             - 'metadata': Dictionary with metadata about the generation process
 
     Examples:
+        >>> # Load an external SBML model
+        >>> from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+        >>> solver = RoadrunnerSolver()
+        >>> solver.compile(sbml_str)
+        >>> 
         >>> X, y = make_data(
         ...     initial_values={'A': 10.0, 'B': 20.0},
         ...     perturbation_type='gaussian',
         ...     perturbation_params={'std': 2.0},
         ...     n_samples=100,
-        ...     model_spec=model_spec,
         ...     solver=solver,
         ...     seed=42
         ... )
@@ -343,7 +347,6 @@ def make_data(
         ...     param_perturbation_type='uniform',
         ...     param_perturbation_params={'min': 0.8, 'max': 1.2},
         ...     n_samples=1000,
-        ...     model_spec=degree_spec,
         ...     solver=solver,
         ...     simulation_params={'start': 0, 'end': 10000, 'points': 101},
         ...     seed=42,
@@ -384,7 +387,7 @@ def make_data(
     failed_indices = []
 
     # Components 2 & 3: Timecourse and target data generation
-    if model_spec is not None and solver is not None:
+    if solver is not None:
         if simulation_params is None:
             raise ValueError(
                 "simulation_params must be provided when generating target data"
@@ -396,7 +399,6 @@ def make_data(
         # Use make_target_data_with_params_robust as underlying function
         # This handles timecourse generation and target calculation
         robust_result = make_target_data_with_params_robust(
-            model_spec=model_spec,
             solver=solver,
             feature_df=feature_df,
             parameter_df=parameter_df,
@@ -494,7 +496,7 @@ def make_data(
         metadata = {
             "failed_indices": failed_indices,
             "success_rate": success_rate
-            if model_spec is not None and solver is not None
+            if solver is not None
             else 1.0,
             "n_samples": n_samples,
             "perturbation_type": perturbation_type,
@@ -523,8 +525,7 @@ def make_data_extended(
     perturbation_type: str,
     perturbation_params: Dict[str, Any],
     n_samples: int,
-    model_spec=None,
-    solver=None,
+    solver: Optional[Solver] = None,
     parameter_values: Optional[Dict[str, float]] = None,
     param_perturbation_type: str = "none",
     param_perturbation_params: Optional[Dict[str, Any]] = None,
@@ -551,8 +552,7 @@ def make_data_extended(
         perturbation_type: Type of perturbation ('uniform', 'gaussian', 'lognormal', 'lhs')
         perturbation_params: Parameters for perturbation
         n_samples: Number of samples
-        model_spec: Model specification (required for target generation)
-        solver: Solver object (required for target generation)
+        solver: Solver object (required for target generation) - can load any SBML/Antimony model
         parameter_values: Dictionary of kinetic parameter values (optional)
         param_perturbation_type: Type of perturbation for kinetic parameters ('none', 'uniform', 'gaussian', 'lognormal', 'lhs')
         param_perturbation_params: Parameters for kinetic parameter perturbation (optional)
@@ -576,12 +576,16 @@ def make_data_extended(
             - 'metadata': Dictionary with metadata about the generation process
 
     Examples:
+        >>> # Load an external SBML model
+        >>> from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+        >>> solver = RoadrunnerSolver()
+        >>> solver.compile(sbml_str)
+        >>> 
         >>> result = make_data_extended(
         ...     initial_values={'A': 10.0, 'B': 20.0},
         ...     perturbation_type='gaussian',
         ...     perturbation_params={'std': 2.0},
         ...     n_samples=100,
-        ...     model_spec=model_spec,
         ...     solver=solver,
         ...     seed=42
         ... )
@@ -594,7 +598,6 @@ def make_data_extended(
         ...     perturbation_type='gaussian',
         ...     perturbation_params={'std': 2.0},
         ...     n_samples=100,
-        ...     model_spec=model_spec,
         ...     solver=solver,
         ...     seed=42,
         ...     capture_all_species=False  # Capture only outcome variable timecourse
@@ -606,7 +609,6 @@ def make_data_extended(
         perturbation_type=perturbation_type,
         perturbation_params=perturbation_params,
         n_samples=n_samples,
-        model_spec=model_spec,
         solver=solver,
         parameter_values=parameter_values,
         param_perturbation_type=param_perturbation_type,

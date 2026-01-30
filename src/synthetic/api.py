@@ -415,7 +415,7 @@ def make_dataset_drug_response(
     simulation_params: Optional[Dict[str, Any]] = None,
     seed: Optional[int] = None,
     param_seed: Optional[int] = None,
-    solver_type: str = 'scipy',
+    solver_type: str = 'roadrunner',
     jit: bool = True,
     verbose: bool = False,
     n_cores: int = 1,
@@ -501,7 +501,9 @@ def make_dataset_drug_response(
         param_perturbation_params = {'shape': 0.1}
     
     # Pass model_spec to conserve_rules for auto-generation of species ranges
-    if perturbation_type == 'conserve_rules' and 'model_spec' not in perturbation_params:
+    # Note: This is optional - if model_spec is not provided, conserve_rules will use
+    # the species_range dictionary if provided, or auto-generate from initial_values
+    if perturbation_type == 'conserve_rules' and 'model_spec' not in perturbation_params and 'species_range' not in perturbation_params:
         perturbation_params = perturbation_params.copy()
         perturbation_params['model_spec'] = cell_model.spec
 
@@ -530,7 +532,6 @@ def make_dataset_drug_response(
         perturbation_type=perturbation_type,
         perturbation_params=perturbation_params,
         n_samples=n,
-        model_spec=cell_model.spec,
         solver=solver,
         parameter_values=parameter_values,
         param_perturbation_type=param_perturbation_type,
@@ -554,7 +555,7 @@ def make_dataset_drug_response(
             X = X[[col for col in X.columns if not col.endswith('a')]]
         if exclude_outcome_from_features:
             X = X.drop(columns=['O'])
-        y = pd.Series(result['targets'].values.ravel(), name=target_specie, index=result['targets'].index)
+        y = pd.Series(result['targets'].iloc[:, 0].values, name=target_specie, index=result['targets'].index, dtype=float)
         if not as_pandas:
             X = X.values.astype(np.float64)
             y = y.values.ravel().astype(np.float64)

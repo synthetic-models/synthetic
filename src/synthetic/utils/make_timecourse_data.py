@@ -12,13 +12,11 @@ import pandas as pd
 from tqdm import tqdm
 
 from ..Solver.Solver import Solver
-from ..Specs.BaseSpec import BaseSpec
 
 logger = logging.getLogger(__name__)
 
 
 def generate_timecourse_data(
-    model_spec: BaseSpec,
     solver: Solver,
     feature_df: pd.DataFrame,
     parameter_df: pd.DataFrame = None,
@@ -40,8 +38,7 @@ def generate_timecourse_data(
     - Support for both single-species and all-species capture
 
     Args:
-        model_spec: ModelSpecification object
-        solver: Solver object (ScipySolver or RoadrunnerSolver)
+        solver: Solver object (ScipySolver or RoadrunnerSolver) - can load any SBML/Antimony model
         feature_df: DataFrame of perturbed initial values
         parameter_df: DataFrame of perturbed kinetic parameters (optional)
         simulation_params: Dictionary with 'start', 'end', 'points' keys
@@ -64,8 +61,13 @@ def generate_timecourse_data(
             - 'success_indices': List of indices of successful samples
 
     Examples:
+        >>> # Load an external SBML model
+        >>> from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+        >>> solver = RoadrunnerSolver()
+        >>> solver.compile(sbml_str)
+        >>> 
+        >>> # Generate timecourse data
         >>> result = generate_timecourse_data(
-        ...     model_spec=model_spec,
         ...     solver=solver,
         ...     feature_df=feature_df,
         ...     simulation_params={'start': 0, 'end': 500, 'points': 100},

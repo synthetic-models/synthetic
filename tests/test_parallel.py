@@ -9,7 +9,7 @@ from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
 def test_parallel_speedup():
     """Test parallel vs sequential execution."""
     print("Creating virtual cell model...")
-    vc = Builder.specify([3, 10, 20, 100])
+    vc = Builder.specify([3, 10, 20])
     
     print("Compiling Roadrunner solver...")
     solver = RoadrunnerSolver()
@@ -31,7 +31,7 @@ def test_parallel_speedup():
         initial_values=initial_values,
         perturbation_type='lognormal',
         perturbation_params={'shape': 0.1},
-        n_samples=50,
+        n_samples=500,
         seed=42
     )
     
@@ -40,7 +40,6 @@ def test_parallel_speedup():
     print("\nTesting sequential execution (n_cores=1)...")
     start_time = time.time()
     targets_seq, timecourse_seq, success_mask_seq = make_target_data_with_params_robust(
-        model_spec=vc.spec,
         solver=solver,
         feature_df=feature_df,
         simulation_params=simulation_params,
@@ -59,7 +58,6 @@ def test_parallel_speedup():
     print("\nTesting parallel execution (n_cores=-1)...")
     start_time = time.time()
     targets_par, timecourse_par, success_mask_par = make_target_data_with_params_robust(
-        model_spec=vc.spec,
         solver=solver,
         feature_df=feature_df,
         simulation_params=simulation_params,

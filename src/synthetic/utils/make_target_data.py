@@ -14,7 +14,6 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 
 from ..Solver.Solver import Solver
-from ..Specs.BaseSpec import BaseSpec
 from .target_calculators import calculate_target_from_series
 
 logger = logging.getLogger(__name__)
@@ -101,7 +100,6 @@ def calculate_targets_from_timecourse(
 
 
 def make_target_data_with_params(
-    model_spec: BaseSpec,
     solver: Solver,
     feature_df: pd.DataFrame,
     parameter_df: pd.DataFrame = None,
@@ -116,8 +114,7 @@ def make_target_data_with_params(
     Generate target data with optional kinetic parameter perturbation.
 
     Args:
-        model_spec: ModelSpecification object
-        solver: Solver object (ScipySolver or RoadrunnerSolver)
+        solver: Solver object (ScipySolver or RoadrunnerSolver) - can load any SBML/Antimony model
         feature_df: DataFrame of perturbed initial values
         parameter_df: DataFrame of perturbed kinetic parameters (optional)
         simulation_params: Dictionary with 'start', 'end', 'points' keys
@@ -322,7 +319,6 @@ def make_target_data_with_params(
 
 
 def make_target_data_with_params_robust(
-    model_spec: BaseSpec,
     solver: Solver,
     feature_df: pd.DataFrame,
     parameter_df: pd.DataFrame = None,
@@ -350,8 +346,7 @@ def make_target_data_with_params_robust(
     3. Returns results in requested format
 
     Args:
-        model_spec: ModelSpecification object
-        solver: Solver object (ScipySolver or RoadrunnerSolver)
+        solver: Solver object (ScipySolver or RoadrunnerSolver) - can load any SBML/Antimony model
         feature_df: DataFrame of perturbed initial values
         parameter_df: DataFrame of perturbed kinetic parameters (optional)
         simulation_params: Dictionary with 'start', 'end', 'points' keys
@@ -379,15 +374,18 @@ def make_target_data_with_params_robust(
             - 'success_mask': Boolean Series indicating which original samples succeeded
 
     Examples:
+        >>> # Load an external SBML model
+        >>> from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+        >>> solver = RoadrunnerSolver()
+        >>> solver.compile(sbml_str)
+        >>> 
         >>> targets, timecourse, success_mask = make_target_data_with_params_robust(
-        ...     model_spec=model_spec,
         ...     solver=solver,
         ...     feature_df=feature_df,
         ...     capture_all_species=True
         ... )
 
         >>> result = make_target_data_with_params_robust(
-        ...     model_spec=model_spec,
         ...     solver=solver,
         ...     feature_df=feature_df,
         ...     capture_all_species=True,
@@ -402,7 +400,6 @@ def make_target_data_with_params_robust(
     from .make_timecourse_data import generate_timecourse_data
 
     timecourse_result = generate_timecourse_data(
-        model_spec=model_spec,
         solver=solver,
         feature_df=feature_df,
         parameter_df=parameter_df,
