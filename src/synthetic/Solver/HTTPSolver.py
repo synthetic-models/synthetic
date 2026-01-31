@@ -52,6 +52,13 @@ class HTTPSolver(Solver):
         self.timeout = kwargs.get('timeout', 300.0)
         self.headers = kwargs.get('headers', {})
         self.auth = kwargs.get('auth')
+        
+        # perform a simple validation of the URL
+        try:
+            response = requests.head(self.endpoint, timeout=self.timeout)
+            response.raise_for_status()
+        except requests.RequestException as e:
+            raise ValueError(f"Could not reach endpoint '{self.endpoint}': {e}")
 
         return True
 

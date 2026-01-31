@@ -13,6 +13,7 @@ from synthetic.Solver.HTTPSolver import HTTPSolver
 
 solver = HTTPSolver()
 solver.compile("http://localhost:8000/simulate", timeout=300.0)
+# Note: compile() sends a HEAD request to validate the endpoint is reachable
 results = solver.simulate(start=0, stop=1000, step=100)
 
 # With overrides
@@ -20,6 +21,8 @@ solver.set_state_values({"S1": 100.0, "R1_1": 50.0})
 solver.set_parameter_values({"Km_J0": 10.0})
 results = solver.simulate(start=0, stop=1000, step=100)
 ```
+
+**Important:** The `compile()` method validates the endpoint by sending a HEAD request. If the server is unreachable or returns an error status, a `ValueError` is raised with details about the connection failure.
 
 ---
 
@@ -113,6 +116,18 @@ The server should return JSON in one of these pandas.DataFrame-compatible format
 }
 ```
 
+### Endpoint Validation (HEAD Request)
+
+When the client calls `compile()`, it sends a `HEAD` request to verify the endpoint is reachable. The server should handle HEAD requests gracefully:
+
+| Status Code | Description |
+|-------------|-------------|
+| `200 OK` | Endpoint is valid and reachable |
+| `404 Not Found` | Endpoint does not exist |
+| `405 Method Not Allowed` | HEAD method not supported (client will treat as error) |
+
+**Server implementation note:** If using FastAPI, HEAD requests are automatically handled for POST endpoints. For other frameworks, ensure the simulate endpoint responds to HEAD requests with a 200 status code, or implement an explicit HEAD handler.
+
 ### Behavior Notes
 
 1. **Optional Overrides:** `state_values` and `parameter_values` are optional. If omitted, the server should use its default model configuration.
@@ -157,6 +172,9 @@ async def simulate(req: SimulationRequest):
         return results.to_dict(orient="list")
     except Exception as e:
         raise HTTPException(status_code=500, detail={"error": str(e)})
+
+# Note: FastAPI automatically handles HEAD requests for POST endpoints,
+# so no additional handler is needed for endpoint validation.
 ```
 
 ---
@@ -168,6 +186,11 @@ const express = require('express');
 const app = express();
 
 app.use(express.json());
+
+// HEAD handler for endpoint validation (called by client during compile)
+app.head('/simulate', (req, res) => {
+    res.status(200).end();
+});
 
 app.post('/simulate', (req, res) => {
     const { start, stop, step, state_values, parameter_values } = req.body;
