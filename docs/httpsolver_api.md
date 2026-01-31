@@ -1,0 +1,191 @@
+# HTTPSolver API Reference
+
+This document describes the HTTP API contract for the `HTTPSolver` class. Server implementations should follow this specification to ensure compatibility.
+
+## Overview
+
+The `HTTPSolver` sends HTTP POST requests to an external server for ODE simulation. The server receives simulation parameters and optional state/parameter overrides, then returns simulation results as JSON.
+
+## Client Usage
+
+```python
+from synthetic.Solver.HTTPSolver import HTTPSolver
+
+solver = HTTPSolver()
+solver.compile("http://localhost:8000/simulate", timeout=300.0)
+results = solver.simulate(start=0, stop=1000, step=100)
+
+# With overrides
+solver.set_state_values({"S1": 100.0, "R1_1": 50.0})
+solver.set_parameter_values({"Km_J0": 10.0})
+results = solver.simulate(start=0, stop=1000, step=100)
+```
+
+---
+
+## Server Implementation Guide
+
+### Request Format
+
+**Method:** `POST`
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+    "start": float,           // Required: Start time
+    "stop": float,            // Required: Stop time
+    "step": float,            // Required: Step size
+    "state_values": {         // Optional: State name -> value overrides
+        "S1": 100.0,
+        "R1_1": 50.0
+    },
+    "parameter_values": {     // Optional: Parameter name -> value overrides
+        "Km_J0": 10.0,
+        "Vmax_J1": 100.0
+    }
+}
+```
+
+**Example request:**
+```json
+{
+    "start": 0.0,
+    "stop": 1000.0,
+    "step": 100.0,
+    "state_values": {
+        "S1": 100.0,
+        "R1_1": 50.0
+    },
+    "parameter_values": {
+        "Km_J0": 10.0,
+        "Vmax_J1": 100.0
+    }
+}
+```
+
+### Response Format
+
+**Success:** `200 OK`
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+The server should return JSON in one of these pandas.DataFrame-compatible formats. Prefer column-oriented format for efficiency.
+
+#### Option A: Array of objects (row-oriented)
+```json
+[
+    {"time": 0.0, "S1": 100.0, "S1a": 0.0, "R1_1": 50.0},
+    {"time": 100.0, "S1": 95.0, "S1a": 5.0, "R1_1": 48.0},
+    {"time": 200.0, "S1": 90.0, "S1a": 10.0, "R1_1": 46.0}
+]
+```
+
+#### Option B: Object with arrays (column-oriented)
+```json
+{
+    "time": [0.0, 100.0, 200.0],
+    "S1": [100.0, 95.0, 90.0],
+    "S1a": [0.0, 5.0, 10.0],
+    "R1_1": [50.0, 48.0, 46.0]
+}
+```
+
+### Error Responses
+
+| Status Code | Description |
+|-------------|-------------|
+| `400 Bad Request` | Invalid parameters or malformed JSON |
+| `500 Internal Server Error` | Simulation failure |
+| `504 Gateway Timeout` | Simulation exceeded time limit |
+
+**Error body format:**
+```json
+{
+    "error": "Error message describing what went wrong"
+}
+```
+
+### Behavior Notes
+
+1. **Optional Overrides:** `state_values` and `parameter_values` are optional. If omitted, the server should use its default model configuration.
+
+2. **Hot-Swappability:** The client clears overrides after each `simulate()` call. Each call with new overrides replaces the previous ones entirely.
+
+3. **Server State Design:** The server can be either:
+   - **Stateless:** Each request is independent; the server reloads the model for each request
+   - **Stateful:** The server maintains the model state between requests (useful for cumulative effects)
+
+---
+
+## Example Server Implementation (Python/FastAPI)
+
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Dict, Optional, List
+import pandas as pd
+
+app = FastAPI()
+
+class SimulationRequest(BaseModel):
+    start: float
+    stop: float
+    step: float
+    state_values: Optional[Dict[str, float]] = None
+    parameter_values: Optional[Dict[str, float]] = None
+
+@app.post("/simulate")
+async def simulate(req: SimulationRequest):
+    try:
+        # Run simulation with provided parameters
+        results = run_simulation(
+            start=req.start,
+            stop=req.stop,
+            step=req.step,
+            state_values=req.state_values,
+            parameter_values=req.parameter_values
+        )
+        # Return as DataFrame-compatible JSON (column-oriented)
+        return results.to_dict(orient="list")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+```
+
+---
+
+## Example Server Implementation (Node.js/Express)
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/simulate', (req, res) => {
+    const { start, stop, step, state_values, parameter_values } = req.body;
+
+    try {
+        const results = runSimulation({
+            start,
+            stop,
+            step,
+            stateValues: state_values,
+            parameterValues: parameter_values
+        });
+
+        res.json(results);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.listen(8000);
+```
