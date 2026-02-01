@@ -159,3 +159,91 @@ class HTTPSolver(Solver):
         """
         self.param_values = parameter_values.copy()
         return True
+
+    def _get_base_url(self) -> str:
+        """Get the base URL from the endpoint (remove /simulate suffix if present)."""
+        if self.endpoint is None:
+            raise RuntimeError("Solver not compiled. Call compile() with an endpoint URL first.")
+
+        # Remove /simulate suffix if present to get base URL
+        base_url = self.endpoint
+        if base_url.endswith('/simulate'):
+            base_url = base_url[:-9]  # Remove '/simulate'
+        return base_url.rstrip('/')
+
+    def get_state_defaults(self) -> Dict[str, float]:
+        """
+        Fetch default initial values for all states from the HTTP endpoint.
+
+        Sends a GET request to the /states endpoint to retrieve the server's
+        default state values (species concentrations).
+
+        Returns:
+            Dictionary mapping state names to their default initial values
+
+        Raises:
+            RuntimeError: If solver not compiled
+            requests.RequestException: If the HTTP request fails
+            ValueError: If the response is invalid JSON
+
+        Example:
+            >>> solver = HTTPSolver()
+            >>> solver.compile("http://localhost:8000/simulate")
+            >>> states = solver.get_state_defaults()
+            >>> print(states)
+            {'Ribosome': 1900.0, 'ppERK': 11.1, 'ppAKT': 0.389, ...}
+        """
+        base_url = self._get_base_url()
+        states_url = f"{base_url}/states"
+
+        response = requests.get(
+            states_url,
+            timeout=self.timeout,
+            headers=self.headers,
+            auth=self.auth
+        )
+        response.raise_for_status()
+
+        try:
+            return response.json()
+        except ValueError as e:
+            raise ValueError(f"Invalid JSON response from /states endpoint: {e}")
+
+    def get_parameter_defaults(self) -> Dict[str, float]:
+        """
+        Fetch default values for all parameters from the HTTP endpoint.
+
+        Sends a GET request to the /parameters endpoint to retrieve the server's
+        default parameter values.
+
+        Returns:
+            Dictionary mapping parameter names to their default values
+
+        Raises:
+            RuntimeError: If solver not compiled
+            requests.RequestException: If the HTTP request fails
+            ValueError: If the response is invalid JSON
+
+        Example:
+            >>> solver = HTTPSolver()
+            >>> solver.compile("http://localhost:8000/simulate")
+            >>> params = solver.get_parameter_defaults()
+            >>> print(params)
+            {'k1_1': 0.0042005, 'k3_1': 140.7475, ...}
+        """
+        base_url = self._get_base_url()
+        params_url = f"{base_url}/parameters"
+
+        response = requests.get(
+            params_url,
+            timeout=self.timeout,
+            headers=self.headers,
+            auth=self.auth
+        )
+        response.raise_for_status()
+
+        try:
+            return response.json()
+        except ValueError as e:
+            raise ValueError(f"Invalid JSON response from /parameters endpoint: {e}")
+        
