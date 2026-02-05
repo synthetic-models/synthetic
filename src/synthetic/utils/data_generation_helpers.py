@@ -436,8 +436,8 @@ def make_data(
         if parameter_df is not None and successful_params is not None:
             parameter_df.update(successful_params)
 
-        # Calculate failed indices
-        failed_indices = (~success_mask).tolist()
+        # Calculate failed indices (convert boolean mask to list of actual indices)
+        failed_indices = [i for i, failed in enumerate(~success_mask) if failed]
 
         # Handle timecourse and basal data for return_details
         if return_details:
