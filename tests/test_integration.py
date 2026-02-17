@@ -319,5 +319,102 @@ def test_simple_model_generation():
     assert "O" in results.columns
 
 
+def test_get_species_list_scipy():
+    """
+    Test that ScipySolver.get_species_list() returns species names correctly.
+    """
+    from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
+    from synthetic.Solver.ScipySolver import ScipySolver
+
+    spec = DegreeInteractionSpec(degree_cascades=[1, 2])
+    spec.generate_specifications(random_seed=42)
+    model = spec.generate_network("species_list_test", random_seed=42)
+    model.precompile()
+
+    solver = ScipySolver()
+    solver.compile(model.get_antimony_model(), jit=False)
+
+    species_list = solver.get_species_list()
+
+    # Verify species list is returned and contains expected species
+    assert isinstance(species_list, list)
+    assert len(species_list) > 0
+    assert "O" in species_list  # Outcome species should be present
+
+
+def test_get_species_list_roadrunner():
+    """
+    Test that RoadrunnerSolver.get_species_list() returns species names correctly.
+    """
+    from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
+    from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+
+    spec = DegreeInteractionSpec(degree_cascades=[1, 2])
+    spec.generate_specifications(random_seed=42)
+    model = spec.generate_network("species_list_test_rr", random_seed=42)
+    model.precompile()
+
+    solver = RoadrunnerSolver()
+    solver.compile(model.get_sbml_model())
+
+    species_list = solver.get_species_list()
+
+    # Verify species list is returned and contains expected species
+    assert isinstance(species_list, list)
+    assert len(species_list) > 0
+    assert "O" in species_list  # Outcome species should be present
+
+
+def test_get_species_list_matches_simulation_columns():
+    """
+    Test that get_species_list() returns the same species as simulation output columns.
+    """
+    from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
+    from synthetic.Solver.ScipySolver import ScipySolver
+    from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+
+    spec = DegreeInteractionSpec(degree_cascades=[1])
+    spec.generate_specifications(random_seed=42)
+    model = spec.generate_network("species_match_test", random_seed=42)
+    model.precompile()
+
+    # Test ScipySolver
+    scipy_solver = ScipySolver()
+    scipy_solver.compile(model.get_antimony_model(), jit=False)
+    scipy_species = set(scipy_solver.get_species_list())
+    scipy_results = scipy_solver.simulate(start=0, stop=10, step=5)
+    scipy_columns = set(scipy_results.columns) - {"time"}
+
+    assert scipy_species == scipy_columns, f"ScipySolver mismatch: {scipy_species} vs {scipy_columns}"
+
+    # Test RoadrunnerSolver
+    rr_solver = RoadrunnerSolver()
+    rr_solver.compile(model.get_sbml_model())
+    rr_species = set(rr_solver.get_species_list())
+    rr_results = rr_solver.simulate(start=0, stop=10, step=5)
+    rr_columns = set(rr_results.columns) - {"time"}
+
+    assert rr_species == rr_columns, f"RoadrunnerSolver mismatch: {rr_species} vs {rr_columns}"
+
+
+def test_get_species_list_raises_before_compile():
+    """
+    Test that get_species_list() raises RuntimeError when called before compile().
+    """
+    from synthetic.Solver.ScipySolver import ScipySolver
+    from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+    import pytest
+
+    # Test ScipySolver
+    scipy_solver = ScipySolver()
+    with pytest.raises(RuntimeError, match="compile"):
+        scipy_solver.get_species_list()
+
+    # Test RoadrunnerSolver
+    rr_solver = RoadrunnerSolver()
+    with pytest.raises(RuntimeError, match="compile|created"):
+        rr_solver.get_species_list()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
