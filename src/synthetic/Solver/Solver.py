@@ -46,8 +46,23 @@ class Solver(ABC):
     def set_parameter_values(self, parameter_values: Dict[str, float]) -> bool:
         """
         Hot swapping of parameters in the running instance of the model.
-        Set the values of parameter variables in the model instance, this should only possible after compiling the model. 
+        Set the values of parameter variables in the model instance, this should only possible after compiling the model.
         Not every solver will support this, so it is possible that this function to return an not implemented error.
         returns True if the state variable was set successfully, False otherwise.
         """
         pass
+
+    def get_species_list(self) -> List[str]:
+        """
+        Get list of species (state variable) names in the compiled model.
+
+        This method retrieves species names without running a simulation,
+        which is useful for discovery and validation purposes.
+
+        Returns:
+            List of species names (state variables)
+
+        Raises:
+            RuntimeError: If solver not compiled
+        """
+        raise NotImplementedError("Subclasses must implement get_species_list()")

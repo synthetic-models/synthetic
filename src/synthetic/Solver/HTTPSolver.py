@@ -246,4 +246,19 @@ class HTTPSolver(Solver):
             return response.json()
         except ValueError as e:
             raise ValueError(f"Invalid JSON response from /parameters endpoint: {e}")
-        
+
+    def get_species_list(self):
+        """
+        Get list of species (state variable) names in the compiled model.
+
+        Fetches species names from the HTTP server's /states endpoint
+        without running a simulation.
+
+        Returns:
+            List of species names
+
+        Raises:
+            RuntimeError: If solver not compiled
+            requests.RequestException: If the HTTP request fails
+        """
+        return list(self.get_state_defaults().keys())

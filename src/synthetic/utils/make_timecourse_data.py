@@ -110,20 +110,12 @@ def generate_timecourse_data(
     species_to_capture = []
     if capture_all_species:
         try:
-            test_feature_values = feature_df.iloc[0].to_dict()
-            solver.set_state_values(test_feature_values)
-
-            if parameter_df is not None:
-                test_param_values = parameter_df.iloc[0].to_dict()
-                solver.set_parameter_values(test_param_values)
-
-            test_res = solver.simulate(start, end, points)
-            species_to_capture = [col for col in test_res.columns if col != "time"]
+            species_to_capture = solver.get_species_list()
 
             if outcome_var not in species_to_capture:
                 species_to_capture.append(outcome_var)
         except Exception as e:
-            warnings.warn(f"Could not discover species from test simulation: {e}")
+            warnings.warn(f"Could not retrieve species list from solver: {e}")
 
     from ..SyntheticGenUtils.ParallelUtils import run_parallel_with_error_handling
     

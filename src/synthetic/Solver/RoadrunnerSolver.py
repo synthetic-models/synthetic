@@ -92,7 +92,22 @@ class RoadrunnerSolver(Solver):
                 return False
         
         return True
-        
+
+    def get_species_list(self):
+        """
+        Get list of species (state variable) names in the compiled model.
+
+        Returns:
+            List of species names
+
+        Raises:
+            RuntimeError: If solver not compiled
+        """
+        if self.roadrunner_instance is None:
+            raise RuntimeError("RoadRunner instance is not created. Please call compile() first.")
+
+        return list(self.roadrunner_instance.model.getFloatingSpeciesIds())
+
 
     def set_parameter_values(self, parameter_values: Dict[str, float]) -> bool:
         """

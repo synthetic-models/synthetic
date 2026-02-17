@@ -173,7 +173,22 @@ class ScipySolver(Solver):
             self.parameter_values[index] = value
         
         return True
-        
+
+    def get_species_list(self):
+        """
+        Get list of species (state variable) names in the compiled model.
+
+        Returns:
+            List of species names
+
+        Raises:
+            RuntimeError: If solver not compiled
+        """
+        if self.species is None:
+            raise RuntimeError("Model instance is not created. Please call compile() first.")
+
+        return list(self.species)
+
     
     def _parse_antimony_model(self, antimony_str: str) -> Tuple[
         List[str], List[str], List[str], List[float], List[float], Dict[str, Dict[str, float]]
