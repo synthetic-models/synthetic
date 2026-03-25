@@ -29,5 +29,9 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.8",
+    "networkx>=3.6.1",
     "pytest>=9.0.2",
+    "seaborn>=0.13.2",
 ]
