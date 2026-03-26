@@ -425,6 +425,7 @@ def make_dataset_drug_response(
     exclude_outcome_from_features: bool = True,
     exclude_activated_from_features: bool = True,
     as_pandas: bool = True,
+    return_timecourse: bool = False,
 ) -> Union[Tuple[pd.DataFrame, pd.Series], Tuple[np.ndarray, np.ndarray], Dict[str, Any]]:
     """
     Generate synthetic drug response dataset.
@@ -452,24 +453,23 @@ def make_dataset_drug_response(
         jit: Whether to use JIT compilation (only for scipy solver)
         verbose: Whether to show progress bar
         require_all_successful: Whether to require all samples to succeed (default: False)
-        return_details: If True, returns extended data structure with intermediate datasets (default: False)
+        return_details: If True, returns extended data structure with intermediate datasets (default: True)
         capture_all_species: If True, captures timecourses for all species in returned data.
         as_pandas: If True (default), returns pandas DataFrame for X and Series for y with feature names.
                   If False, returns numpy arrays for X and y.
+        return_timecourse: If True, returns dictionary with X, y, timecourse, parameters, and metadata (default: False)
 
     Returns:
-        If return_details=False: 
-            If as_pandas=True: Tuple of (X, y) where X is pandas DataFrame with feature names 
+        If return_timecourse=False:
+            If as_pandas=True: Tuple of (X, y) where X is pandas DataFrame with feature names
                 and y is pandas Series
             If as_pandas=False: Tuple of (X, y) where X is numpy array (n_samples, n_features)
                 and y is numpy array (n_samples,)
-        If return_details=True: Dictionary with keys:
-            - 'X': Feature matrix (n_samples, n_features) - numpy array
-            - 'y': Target vector (n_samples,) - numpy array
-            - 'features': Feature dataframe (initial values)
-            - 'targets': Target dataframe (outcome values)
-            - 'parameters': Kinetic parameters dataframe (None if not provided)
-            - 'timecourse': Timecourse simulation data
+        If return_timecourse=True: Dictionary with keys:
+            - 'X': Feature matrix (basal state values)
+            - 'y': Target values
+            - 'timecourse': Timecourse simulation data (DataFrame with numpy arrays)
+            - 'parameters': Kinetic parameters dataframe (None if not perturbed)
             - 'metadata': Dictionary with metadata about generation process
 
     Raises:
@@ -550,18 +550,27 @@ def make_dataset_drug_response(
 
     if return_details:
         # Return extended data structure
-        X = result['basal_data']
+        # Use 'features' (perturbed initial values) as X, not 'basal_data' (pre-drug simulation state)
+        X = result['features'].copy()
         if exclude_activated_from_features:
             X = X[[col for col in X.columns if not col.endswith('a')]]
         if exclude_outcome_from_features:
-            X = X.drop(columns=['O'])
+            X = X.drop(columns=['O'], errors='ignore')
         y = pd.Series(result['targets'].iloc[:, 0].values, name=target_specie, index=result['targets'].index, dtype=float)
         if not as_pandas:
             X = X.values.astype(np.float64)
             y = y.values.ravel().astype(np.float64)
-        
+
+        if return_timecourse:
+            return {
+                'X': X,
+                'y': y,
+                'timecourse': result['timecourse'],
+                'parameters': result['parameters'],
+                'metadata': result['metadata']
+            }
         return X, y
-    else: 
+    else:
         raise NotImplementedError("return_details=False is not implemented in this version.")
 
 
