@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run tests
+        run: uv run pytest tests/ -v
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to detect version changes
+
+      - name: Check for version change
+        id: version_check
+        run: |
+          git config --local --add safe.directory "$GITHUB_WORKSPACE"
+
+          # Get current version
+          CURRENT_VERSION=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+          # Check if this version was already tagged
+          if git tag | grep -q "^v${CURRENT_VERSION}$"; then
+            echo "Version $CURRENT_VERSION already tagged, skipping publish"
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+          else
+            echo "New version $CURRENT_VERSION detected"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install uv
+        if: steps.version_check.outputs.should_publish == 'true'
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        if: steps.version_check.outputs.should_publish == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build package
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: uv build
+
+      - name: Publish to PyPI
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: uv publish --token ${{ secrets.PYPI_TOKEN }}
+
+      - name: Create Git tag
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.version_check.outputs.current_version }}"
+          git push origin "v${{ steps.version_check.outputs.current_version }}"
