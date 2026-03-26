@@ -1,7 +1,7 @@
 [project]
-name = "synthetic"
+name = "synthetic-models"
 version = "0.1.0"
-description = "Add your description here"
+description = "synthetic-models is a virtual cell generation library for generating biological synthetic data that can be used for benchmarking predictive modelling workflows. The synthetic data are generated using ODE models formulated in biochemical laws common in cancer cell signalling networks. Synthetic can create datasets in the format of scikit-learn's make_regression method."
 readme = "README.md"
 authors = [
     { name = "Dawson Lan", email = "47137689+AnEvilBurrito@users.noreply.github.com" }
@@ -26,6 +26,9 @@ dependencies = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/synthetic"]
 
 [dependency-groups]
 dev = [

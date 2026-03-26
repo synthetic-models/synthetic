@@ -5,7 +5,7 @@ Synthetic (aka ModelBuilder) is a virtual cell generation library for generating
 ## Installation
 
 ```bash
-pip install synthetic
+pip install synthetic-models
 ```
 
 For development:
