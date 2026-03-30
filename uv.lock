@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -2338,13 +2338,12 @@ wheels = [
 ]
 
 [[package]]
-name = "synthetic"
-version = "0.1.0"
+name = "synthetic-models"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "antimony" },
     { name = "joblib" },
-    { name = "libroadrunner" },
     { name = "matplotlib" },
     { name = "numba" },
     { name = "numpy" },
@@ -2357,21 +2356,31 @@ dependencies = [
     { name = "tqdm" },
 ]
 
-[package.dev-dependencies]
-dev = [
+[package.optional-dependencies]
+plotting = [
     { name = "jupyter" },
     { name = "matplotlib" },
     { name = "networkx" },
-    { name = "pytest" },
     { name = "seaborn" },
+]
+roadrunner = [
+    { name = "libroadrunner" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "antimony", specifier = ">=2.15.0" },
     { name = "joblib", specifier = ">=1.5.0" },
-    { name = "libroadrunner", specifier = ">=2.3.0" },
+    { name = "jupyter", marker = "extra == 'plotting'", specifier = ">=1.1.1" },
+    { name = "libroadrunner", marker = "extra == 'roadrunner'", specifier = ">=2.3.0" },
     { name = "matplotlib", specifier = ">=3.10.3" },
+    { name = "matplotlib", marker = "extra == 'plotting'", specifier = ">=3.10.8" },
+    { name = "networkx", marker = "extra == 'plotting'", specifier = ">=3.6.1" },
     { name = "numba", specifier = ">=0.61.2" },
     { name = "numpy", specifier = ">=2.2.5" },
     { name = "pandas", specifier = ">=2.2.3" },
@@ -2379,18 +2388,14 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "scipy", specifier = ">=1.15.3" },
+    { name = "seaborn", marker = "extra == 'plotting'", specifier = ">=0.13.2" },
     { name = "sympy", specifier = ">=1.14.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
+provides-extras = ["roadrunner", "plotting"]
 
 [package.metadata.requires-dev]
-dev = [
-    { name = "jupyter", specifier = ">=1.1.1" },
-    { name = "matplotlib", specifier = ">=3.10.8" },
-    { name = "networkx", specifier = ">=3.6.1" },
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "seaborn", specifier = ">=0.13.2" },
-]
+dev = [{ name = "pytest", specifier = ">=9.0.2" }]
 
 [[package]]
 name = "terminado"

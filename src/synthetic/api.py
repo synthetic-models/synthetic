@@ -25,7 +25,6 @@ from .Specs.DegreeInteractionSpec import DegreeInteractionSpec
 from .Specs.Drug import Drug
 from .ModelBuilder import ModelBuilder
 from .Solver.ScipySolver import ScipySolver
-from .Solver.RoadrunnerSolver import RoadrunnerSolver
 from .utils.kinetic_tuner import KineticParameterTuner
 
 
@@ -415,7 +414,7 @@ def make_dataset_drug_response(
     simulation_params: Optional[Dict[str, Any]] = None,
     seed: Optional[int] = None,
     param_seed: Optional[int] = None,
-    solver_type: str = 'roadrunner',
+    solver_type: str = 'scipy',
     jit: bool = True,
     verbose: bool = False,
     n_cores: int = 1,
@@ -520,6 +519,7 @@ def make_dataset_drug_response(
         antimony_str = cell_model.model.get_antimony_model()
         solver.compile(antimony_str, jit=jit)
     elif solver_type == 'roadrunner':
+        from .Solver.RoadrunnerSolver import RoadrunnerSolver
         solver = RoadrunnerSolver()
         sbml_str = cell_model.model.get_sbml_model()
         solver.compile(sbml_str)

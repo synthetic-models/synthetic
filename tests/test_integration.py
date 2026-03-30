@@ -180,6 +180,7 @@ def test_roadrunner_solver_simulation():
     Test simulation with RoadrunnerSolver as described in CLAUDE.md.
     RoadrunnerSolver requires SBML format, not Antimony.
     """
+    pytest.importorskip("roadrunner")
     from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
     from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
 
@@ -346,6 +347,7 @@ def test_get_species_list_roadrunner():
     """
     Test that RoadrunnerSolver.get_species_list() returns species names correctly.
     """
+    pytest.importorskip("roadrunner")
     from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
     from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
 
@@ -371,7 +373,6 @@ def test_get_species_list_matches_simulation_columns():
     """
     from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
     from synthetic.Solver.ScipySolver import ScipySolver
-    from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
 
     spec = DegreeInteractionSpec(degree_cascades=[1])
     spec.generate_specifications(random_seed=42)
@@ -387,7 +388,10 @@ def test_get_species_list_matches_simulation_columns():
 
     assert scipy_species == scipy_columns, f"ScipySolver mismatch: {scipy_species} vs {scipy_columns}"
 
-    # Test RoadrunnerSolver
+    # Test RoadrunnerSolver (skip if roadrunner not available)
+    pytest.importorskip("roadrunner")
+    from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+
     rr_solver = RoadrunnerSolver()
     rr_solver.compile(model.get_sbml_model())
     rr_species = set(rr_solver.get_species_list())
@@ -402,15 +406,16 @@ def test_get_species_list_raises_before_compile():
     Test that get_species_list() raises RuntimeError when called before compile().
     """
     from synthetic.Solver.ScipySolver import ScipySolver
-    from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
-    import pytest
 
     # Test ScipySolver
     scipy_solver = ScipySolver()
     with pytest.raises(RuntimeError, match="compile"):
         scipy_solver.get_species_list()
 
-    # Test RoadrunnerSolver
+    # Test RoadrunnerSolver (skip if roadrunner not available)
+    pytest.importorskip("roadrunner")
+    from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+
     rr_solver = RoadrunnerSolver()
     with pytest.raises(RuntimeError, match="compile|created"):
         rr_solver.get_species_list()

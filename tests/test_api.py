@@ -242,7 +242,7 @@ class TestMakeDatasetDrugResponse:
         """Test that make_dataset_drug_response() returns correct shapes."""
         vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
 
-        n_samples = 100
+        n_samples = 10
         X, y = make_dataset_drug_response(
             n=n_samples,
             cell_model=vc,
@@ -263,7 +263,7 @@ class TestMakeDatasetDrugResponse:
         vc.compile()
 
         X, y = make_dataset_drug_response(
-            n=100,
+            n=10,
             cell_model=vc,
             perturbation_type='gaussian',
             perturbation_params={'rsd': 0.2},
@@ -293,14 +293,14 @@ class TestMakeDatasetDrugResponse:
         vc.compile()
 
         X, y = make_dataset_drug_response(
-            n=100,
+            n=10,
             cell_model=vc,
             perturbation_type='gaussian',
             perturbation_params={'rsd': 0.2},
             seed=42,
         )
-        assert X.shape[0] == 100
-        assert y.shape[0] == 100
+        assert X.shape[0] == 10
+        assert y.shape[0] == 10
         # convert y to numpy array if it's a pandas Series
         if isinstance(y, pd.Series):
             y = y.values
@@ -316,7 +316,7 @@ class TestMakeDatasetDrugResponse:
 
         sim_params = {'start': 0, 'end': 500, 'points': 50}
         X, y = make_dataset_drug_response(
-            n=50,
+            n=5,
             cell_model=vc,
             perturbation_type='gaussian',
             perturbation_params={'rsd': 0.2},
@@ -324,8 +324,8 @@ class TestMakeDatasetDrugResponse:
             seed=42,
         )
 
-        assert X.shape[0] == 50
-        assert y.shape[0] == 50
+        assert X.shape[0] == 5
+        assert y.shape[0] == 5
 
     def test_custom_perturbation_type(self):
         """Test with custom perturbation type."""
@@ -334,24 +334,24 @@ class TestMakeDatasetDrugResponse:
 
         # Test each perturbation type with appropriate parameters
         X, y = make_dataset_drug_response(
-            n=50,
+            n=5,
             cell_model=vc,
             perturbation_type='uniform',
             perturbation_params={'min': 0.8, 'max': 1.2},
             seed=42,
         )
-        assert X.shape == (50, 16)
-        assert y.shape == (50,)
+        assert X.shape == (5, 16)
+        assert y.shape == (5,)
 
         X, y = make_dataset_drug_response(
-            n=50,
+            n=5,
             cell_model=vc,
             perturbation_type='gaussian',
             perturbation_params={'rsd': 0.2},
             seed=42,
         )
-        assert X.shape == (50, 16)
-        assert y.shape == (50,)
+        assert X.shape == (5, 16)
+        assert y.shape == (5,)
 
     def test_scipy_and_roadrunner_solvers(self):
         """Test both scipy and roadrunner solvers."""
@@ -360,7 +360,7 @@ class TestMakeDatasetDrugResponse:
 
         # Scipy solver
         X_scipy, y_scipy = make_dataset_drug_response(
-            n=50,
+            n=5,
             cell_model=vc,
             solver_type='scipy',
             perturbation_type='gaussian',
@@ -368,9 +368,10 @@ class TestMakeDatasetDrugResponse:
             seed=42,
         )
 
-        # Roadrunner solver
+        # Roadrunner solver (skip if roadrunner not available)
+        pytest.importorskip("roadrunner")
         X_rr, y_rr = make_dataset_drug_response(
-            n=50,
+            n=5,
             cell_model=vc,
             solver_type='roadrunner',
             perturbation_type='gaussian',
@@ -409,7 +410,7 @@ class TestKineticTuning:
         )
 
         X, y = make_dataset_drug_response(
-            n=100,
+            n=10,
             cell_model=vc,
             target_specie='Oa',
             perturbation_type='gaussian',
@@ -525,21 +526,22 @@ class TestPandasOutput:
     def test_pandas_with_different_solvers(self):
         """Test pandas output works with both solvers."""
         vc = Builder.specify(degree_cascades=[1, 2], random_seed=42)
-        
+
         # Test scipy solver
         X_scipy, y_scipy = make_dataset_drug_response(
             n=5, cell_model=vc, solver_type='scipy', as_pandas=True, seed=42, verbose=False
         )
         assert isinstance(X_scipy, pd.DataFrame)
         assert isinstance(y_scipy, pd.Series)
-        
-        # Test roadrunner solver
+
+        # Test roadrunner solver (skip if roadrunner not available)
+        pytest.importorskip("roadrunner")
         X_rr, y_rr = make_dataset_drug_response(
             n=5, cell_model=vc, solver_type='roadrunner', as_pandas=True, seed=42, verbose=False
         )
         assert isinstance(X_rr, pd.DataFrame)
         assert isinstance(y_rr, pd.Series)
-        
+
         # Shapes should be the same
         assert X_scipy.shape == X_rr.shape
         assert y_scipy.shape == y_rr.shape

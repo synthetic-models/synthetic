@@ -2,15 +2,20 @@
 Test script for parallel implementation of make_target_data_with_params_robust.
 """
 import time
+import pytest
 from synthetic import Builder
 from synthetic.utils.make_target_data import make_target_data_with_params_robust
+
+roadrunner = pytest.importorskip("roadrunner")
 from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+
+pytestmark = pytest.mark.parallel
 
 def test_parallel_speedup():
     """Test parallel vs sequential execution."""
     print("Creating virtual cell model...")
     vc = Builder.specify([3, 10, 20])
-    
+
     print("Compiling Roadrunner solver...")
     solver = RoadrunnerSolver()
     sbml_str = vc.model.get_sbml_model()

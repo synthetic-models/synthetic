@@ -19,7 +19,10 @@ from .Specs.Regulation import Regulation
 # Solvers
 from .Solver.Solver import Solver
 from .Solver.ScipySolver import ScipySolver
-from .Solver.RoadrunnerSolver import RoadrunnerSolver
+try:
+    from .Solver.RoadrunnerSolver import RoadrunnerSolver
+except ImportError:
+    RoadrunnerSolver = None
 
 # Utilities
 from .utils.make_feature_data import make_feature_data

@@ -8,7 +8,10 @@ from SyntheticGen.py to eliminate code duplication.
 import pandas as pd
 from typing import Dict, Any, List
 from ..Solver.Solver import Solver
-from ..Solver.RoadrunnerSolver import RoadrunnerSolver
+try:
+    from ..Solver.RoadrunnerSolver import RoadrunnerSolver
+except ImportError:
+    RoadrunnerSolver = None
 from ..Solver.ScipySolver import ScipySolver
 
 
