@@ -31,7 +31,7 @@ jobs:
           AUTH_URL="https://x-access-token:${GH_DOC_TOKEN}@github.com/${TARGET_REPO}"
 
           git clone --single-branch --branch main "$AUTH_URL" "$CLONE_DIR"
-          rsync -a --delete site/ "$CLONE_DIR/"
+          rsync -a --delete --exclude '.git' site/ "$CLONE_DIR/"
           cd "$CLONE_DIR"
 
           git config user.name "github-actions[bot]"
