@@ -1,1 +1,8 @@
 site_name: Synthetic
+site_url: https://synthetic-models.github.io/
+theme:
+  name: material
+  palette:
+    primary: indigo # You can change the color here
+plugins:
+  - mkdocstrings # This pulls your docstrings from your code automatically

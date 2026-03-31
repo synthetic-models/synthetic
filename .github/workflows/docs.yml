@@ -1,0 +1,19 @@
+name: publish-docs
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - run: pip install mkdocs-material mkdocstrings[python]
+      - name: Deploy to GitHub Pages Repo
+        run: |
+          git remote add deploy "https://${{ secrets.GH_DOC_TOKEN }}@github.com/synthetic-models/synthetic-models.github.io.git"
+          mkdocs gh-deploy --remote-name deploy --force
