@@ -13,7 +13,17 @@ jobs:
         with:
           python-version: 3.x
       - run: pip install mkdocs-material mkdocstrings[python]
-      - name: Deploy to GitHub Pages Repo
+      - name: Build docs
+        run: mkdocs build
+      - name: Push built site to GitHub Pages repo
         run: |
-          git remote add deploy "https://${{ secrets.GH_DOC_TOKEN }}@github.com/synthetic-models/synthetic-models.github.io.git"
-          mkdocs gh-deploy --remote-name deploy --force
+          CLONE_DIR=$(mktemp -d)
+          git clone --single-branch --branch main "https://${{ secrets.GH_DOC_TOKEN }}@github.com/synthetic-models/synthetic-models.github.io.git" "$CLONE_DIR"
+          rsync -a --delete site/ "$CLONE_DIR/"
+          cd "$CLONE_DIR"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --quiet && echo "No changes to deploy" && exit 0
+          git commit -m "docs: update from Synthetic ${GITHUB_SHA::7}"
+          git push
