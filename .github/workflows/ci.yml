@@ -49,12 +49,15 @@ jobs:
         run: |
           git config --local --add safe.directory "$GITHUB_WORKSPACE"
 
+          # Fetch all remote tags to ensure we check against up-to-date state
+          git fetch --tags origin
+
           # Get current version
           CURRENT_VERSION=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
-          # Check if this version was already tagged
-          if git tag | grep -q "^v${CURRENT_VERSION}$"; then
+          # Check if this version was already tagged (using git ls-remote for reliability)
+          if git ls-remote --tags origin | grep -q "refs/tags/v${CURRENT_VERSION}$"; then
             echo "Version $CURRENT_VERSION already tagged, skipping publish"
             echo "should_publish=false" >> $GITHUB_OUTPUT
           else
