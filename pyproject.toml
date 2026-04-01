@@ -47,6 +47,7 @@ sklearn = [
 dev = [
     "mkdocs-material>=9.7.6",
     "mkdocstrings[python]>=1.0.3",
+    "pymdown-extensions>=10.15",
     "pytest>=9.0.2",
 ]
 

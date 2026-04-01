@@ -3,12 +3,37 @@ site_url: https://synthetic-models.github.io/
 theme:
   name: material
   palette:
-    primary: indigo
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - navigation.footer
+extra_javascript:
+  - https://unpkg.com/mermaid/dist/mermaid.min.js
+  - javascripts/mermaid-config.js
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
 plugins:
   - mkdocstrings
 nav:
   - Home: index.md
   - Quick Start: quick_start.md
+  - Model Building: model_building.md
   - Network & Drug Design: network_and_drug_design.md
   - Solvers & Simulation: solvers_and_simulation.md
   - Data Generation: data_generation.md

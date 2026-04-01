@@ -1,33 +1,5 @@
 # Quick Start
 
-## Installation
-
-```bash
-pip install synthetic-models
-```
-
-For development:
-
-```bash
-git clone https://github.com/synthetic-models/synthetic.git
-cd Synthetic
-uv sync
-```
-
-### Alpha Testing
-
-For lab members participating in alpha testing, install directly from the lab's GitHub repository:
-
-```bash
-pip install git+https://github.com/IntegratedNetworkModellingLab/Synthetic.git
-```
-
-To install a specific version or commit:
-
-```bash
-pip install git+https://github.com/IntegratedNetworkModellingLab/Synthetic.git@v0.1.0
-```
-
 ## Your First Dataset
 
 Generate a synthetic drug response dataset in three lines:
