@@ -3,6 +3,13 @@ site_url: https://synthetic-models.github.io/
 theme:
   name: material
   palette:
-    primary: indigo # You can change the color here
+    primary: indigo
 plugins:
-  - mkdocstrings # This pulls your docstrings from your code automatically
+  - mkdocstrings
+nav:
+  - Home: index.md
+  - Quick Start: quick_start.md
+  - Network & Drug Design: network_and_drug_design.md
+  - Solvers & Simulation: solvers_and_simulation.md
+  - Data Generation: data_generation.md
+  - Advanced Workflows: advanced_workflows.md
