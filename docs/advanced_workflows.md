@@ -189,6 +189,8 @@ estimated_values = np.exp(result.x)
 
 Compare estimated parameters to ground truth:
 
+![Ground truth vs sparse observations](images/param_estimation_observations.png)
+
 ```python
 for i, p in enumerate(param_names):
     err = abs(estimated_values[i] - true_values[i]) / true_values[i] * 100
@@ -196,6 +198,10 @@ for i, p in enumerate(param_names):
 ```
 
 Simulate with estimated parameters to visualize the fit:
+
+![Parameter estimation results: true vs initial guess vs estimated](images/param_estimation_results.png)
+
+![Fitted timecourse compared to ground truth](images/param_estimation_fitted.png)
 
 ```python
 solver.set_state_values(true_initial)
@@ -255,6 +261,8 @@ print(f"Reactions: {len(model.reactions)}")
 Synthetic datasets are designed for benchmarking machine learning models with known ground truth.
 
 ### Train/Test with sklearn
+
+![ML model comparison by Pearson correlation](images/ml_model_comparison.png)
 
 ```python
 from sklearn.ensemble import RandomForestRegressor

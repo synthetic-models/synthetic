@@ -80,7 +80,9 @@ Both solvers return a pandas DataFrame with a `time` column and one column per s
 
 ## Timecourse Simulation
 
-Simulate and visualize species dynamics over time:
+Simulate and visualize species dynamics over time. The vertical dashed line marks drug onset:
+
+![Timecourse simulation with ScipySolver](images/timecourse_scipy.png)
 
 ```python
 from synthetic import Builder
@@ -107,7 +109,9 @@ plt.show()
 
 ### Comparing Solvers
 
-Run the same simulation with both solvers to compare results:
+Run the same simulation with both solvers to compare results. Both produce identical dynamics:
+
+![Timecourse simulation with RoadrunnerSolver](images/timecourse_roadrunner.png)
 
 ```python
 from synthetic.Solver.ScipySolver import ScipySolver

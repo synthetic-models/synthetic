@@ -28,6 +28,10 @@ This creates:
 
 Each cascade at degree `d` creates the reaction `R{d}_{i} -> I{d}_{i}`. Degree 1 intermediates connect to the outcome (`I1_{i} -> O`). Species at higher degrees regulate lower-degree species through the network's hierarchical structure.
 
+![Network topology visualization](images/network_topology.png)
+
+Green edges indicate stimulation, red edges indicate inhibition, and dashed purple edges indicate drug regulation.
+
 ```
   Drug (D)
     |

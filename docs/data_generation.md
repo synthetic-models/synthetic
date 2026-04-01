@@ -137,6 +137,8 @@ This ensures biologically plausible initial conditions where the total concentra
 
 Identify which species are most predictive of the drug response:
 
+![Feature analysis: correlation matrix, feature-target correlation, and outcome distribution](images/data_generation_feature_analysis.png)
+
 ```python
 # Calculate Pearson correlation between each feature and the target
 correlations = X.apply(lambda col: col.corr(y))
@@ -152,7 +154,9 @@ In hierarchical networks, degree 1 species (closest to the drug target) typicall
 
 ### Feature Engineering from Timecourse
 
-Extract features from the full timecourse trajectories:
+Extract features from the full timecourse trajectories. The plot below shows a single sample's degree 1 and outcome dynamics:
+
+![Single sample timecourse dynamics](images/timecourse_single_sample.png)
 
 ```python
 import numpy as np
@@ -170,6 +174,10 @@ for idx in range(len(timecourse)):
 
 X_timecourse = pd.DataFrame(last_point_features, index=timecourse.index)
 ```
+
+Comparing different feature types across ML models shows how feature representation impacts predictive performance:
+
+![Feature engineering comparison across models](images/feature_engineering_comparison.png)
 
 ## Exporting Data
 

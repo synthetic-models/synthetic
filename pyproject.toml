@@ -39,6 +39,9 @@ plotting = [
     "networkx>=3.6.1",
     "seaborn>=0.13.2",
 ]
+sklearn = [
+    "scikit-learn>=1.6.1",
+]
 
 [dependency-groups]
 dev = [
