@@ -36,32 +36,24 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Need full history to detect version changes
 
       - name: Check for version change
         id: version_check
         run: |
-          git config --local --add safe.directory "$GITHUB_WORKSPACE"
-
-          # Fetch all remote tags to ensure we check against up-to-date state
-          git fetch --tags origin
-
-          # Get current version
           CURRENT_VERSION=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
-          # Check if this version was already tagged (using git ls-remote for reliability)
-          if git ls-remote --tags origin | grep -q "refs/tags/v${CURRENT_VERSION}$"; then
-            echo "Version $CURRENT_VERSION already tagged, skipping publish"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://pypi.org/pypi/synthetic-models/${CURRENT_VERSION}/json")
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "Version $CURRENT_VERSION already exists on PyPI, skipping publish"
             echo "should_publish=false" >> $GITHUB_OUTPUT
           else
-            echo "New version $CURRENT_VERSION detected"
+            echo "New version $CURRENT_VERSION detected (PyPI returned $HTTP_STATUS)"
             echo "should_publish=true" >> $GITHUB_OUTPUT
           fi
 
@@ -85,10 +77,32 @@ jobs:
         if: steps.version_check.outputs.should_publish == 'true'
         run: uv publish --token ${{ secrets.PYPI_TOKEN }}
 
-      - name: Create Git tag
-        if: steps.version_check.outputs.should_publish == 'true'
+  tag:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: version_check
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${{ steps.version_check.outputs.current_version }}"
-          git push origin "v${{ steps.version_check.outputs.current_version }}"
+          CURRENT_VERSION=$(grep -oP 'version = "\K[^"]+' pyproject.toml)
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Git tag
+        run: |
+          TAG="v${{ steps.version_check.outputs.current_version }}"
+          if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
+            echo "Tag ${TAG} already exists, skipping"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
