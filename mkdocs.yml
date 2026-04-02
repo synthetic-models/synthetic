@@ -1,5 +1,7 @@
 site_name: Synthetic
 site_url: https://synthetic-models.github.io/
+site_description: Generate virtual cell data using ODE models for ML benchmarking and drug response modeling
+site_author: Dawson Lan
 theme:
   name: material
   palette:
@@ -19,22 +21,49 @@ theme:
         name: Switch to light mode
   features:
     - content.code.copy
+    - content.code.annotate
     - navigation.footer
+    - navigation.tabs
+    - navigation.top
+    - navigation.sections
+    - search.suggest
 extra_javascript:
   - https://unpkg.com/mermaid/dist/mermaid.min.js
   - javascripts/mermaid-config.js
+extra_css:
+  - stylesheets/extra.css
 markdown_extensions:
+  - admonition
+  - attr_list
+  - toc:
+      permalink: true
+  - pymdownx.details
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
           class: mermaid
+  - pymdownx.tabbed:
+      alternate_style: true
 plugins:
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_root_heading: true
+            show_source: true
+            show_signature_annotations: true
+            heading_level: 3
 nav:
   - Home: index.md
-  - Quick Start: quick_start.md
-  - Model Building: model_building.md
-  - Network & Drug Design: network_and_drug_design.md
-  - Solvers & Simulation: solvers_and_simulation.md
-  - Data Generation: data_generation.md
-  - Advanced Workflows: advanced_workflows.md
+  - Tutorial:
+      - Quick Start: quick_start.md
+  - Guides:
+      - Model Building: model_building.md
+      - Network & Drug Design: network_and_drug_design.md
+      - Solvers & Simulation: solvers_and_simulation.md
+      - Data Generation: data_generation.md
+      - Advanced Workflows: advanced_workflows.md
+  - Reference:
+      - API Reference: api_reference.md
+      - FAQ: faq.md

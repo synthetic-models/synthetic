@@ -127,12 +127,14 @@ uv sync
 
 ## Quick Start
 
-```python
-from synthetic import Builder, make_dataset_drug_response
+!!! tip "Generate your first dataset in 3 lines"
 
-vc = Builder.specify(degree_cascades=[3, 5], random_seed=42)
-X, y = make_dataset_drug_response(n=1000, cell_model=vc, target_specie='Oa')
-```
+    ```python
+    from synthetic import Builder, make_dataset_drug_response
+
+    vc = Builder.specify(degree_cascades=[3, 5], random_seed=42)
+    X, y = make_dataset_drug_response(n=1000, cell_model=vc, target_specie='Oa')
+    ```
 
 Head to the [Quick Start](quick_start.md) guide for more details.
 
@@ -146,3 +148,5 @@ Head to the [Quick Start](quick_start.md) guide for more details.
 | [Solvers & Simulation](solvers_and_simulation.md) | Solver backends, timecourse simulation, HTTP solver |
 | [Data Generation](data_generation.md) | Perturbation strategies, extended formats, feature analysis |
 | [Advanced Workflows](advanced_workflows.md) | Kinetic tuning, parameter estimation, model export, ML benchmarking |
+| [API Reference](api_reference.md) | Auto-generated API docs from source docstrings |
+| [FAQ](faq.md) | Common questions and troubleshooting |

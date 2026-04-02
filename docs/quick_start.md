@@ -59,3 +59,7 @@ X, y = make_dataset_drug_response(
 - [Solvers & Simulation](solvers_and_simulation.md) - Direct solver usage and timecourse simulation
 - [Data Generation](data_generation.md) - Perturbation strategies, extended formats, and feature analysis
 - [Advanced Workflows](advanced_workflows.md) - Kinetic tuning, parameter estimation, and model export
+- [API Reference](api_reference.md) - Full API documentation
+
+!!! warning "Using the low-level API?"
+    When building models directly with `ModelBuilder`, `Reaction`, or `ReactionArchtype`, you must call `model.precompile()` before accessing parameters or simulating. The high-level `Builder.specify()` API handles this automatically. See [Model Building](model_building.md) for details.

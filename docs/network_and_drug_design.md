@@ -161,23 +161,25 @@ vc.compile()
 
 `add_drug()` returns `self`, enabling method chaining:
 
-```python
-vc = Builder.specify([5, 10, 15], auto_drug=False, auto_compile=False)
+!!! tip "Chain multiple drugs fluently"
 
-vc.add_drug(
-    name="Drug_A",
-    start_time=5000.0,
-    regulation=["R1_1", "R1_2"],
-    regulation_type=["down", "down"],
-    value=100.0,
-).add_drug(
-    name="Drug_B",
-    start_time=5000.0,
-    regulation=["R1_3", "R1_4"],
-    regulation_type=["down", "down"],
-    value=100.0,
-).compile()
-```
+    ```python
+    vc = Builder.specify([5, 10, 15], auto_drug=False, auto_compile=False)
+
+    vc.add_drug(
+        name="Drug_A",
+        start_time=5000.0,
+        regulation=["R1_1", "R1_2"],
+        regulation_type=["down", "down"],
+        value=100.0,
+    ).add_drug(
+        name="Drug_B",
+        start_time=5000.0,
+        regulation=["R1_3", "R1_4"],
+        regulation_type=["down", "down"],
+        value=100.0,
+    ).compile()
+    ```
 
 ### Inspecting Drugs
 
@@ -191,7 +193,9 @@ for drug in drugs:
 
 ### Drug Targeting Rules
 
-- Drugs must target **degree 1 R species** (e.g., `R1_1`, `R1_2`)
+!!! warning "Drugs must target degree 1 R species"
+    Only degree 1 receptor species (e.g., `R1_1`, `R1_2`) are valid drug targets. Targeting species at other degrees will produce an error.
+
 - Regulation types: `"up"` (stimulator effect) or `"down"` (inhibitor effect)
 - Drugs appear at `start_time` via piecewise assignment rules
 
@@ -260,3 +264,11 @@ if tuner is not None:
     for species, concentration in targets.items():
         print(f"{species}: {concentration:.3f}")
 ```
+
+---
+
+**See also:**
+
+- [Data Generation](data_generation.md) — generating datasets from compiled models
+- [Advanced Workflows](advanced_workflows.md) — kinetic tuning and parameter estimation
+- [API Reference](api_reference.md) — full API docs for `Builder`, `VirtualCell`, and `Drug`

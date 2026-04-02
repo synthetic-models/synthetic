@@ -5,7 +5,9 @@
       "Bash(find c:/Github/Synthetic -name *.py -type f -exec grep -l \"matplotlib\\\\|seaborn\\\\|networkx\" {})",
       "Bash(2)",
       "Bash(find c:/Github/Synthetic -name README*.md -o -name readme*.md)",
-      "Bash(.venv/bin/python -c \"from synthetic import Builder, make_dataset_drug_response; print\\(''Import succeeded''\\)\")"
+      "Bash(.venv/bin/python -c \"from synthetic import Builder, make_dataset_drug_response; print\\(''Import succeeded''\\)\")",
+      "Bash(mkdocs build:*)",
+      "Bash(uv run:*)"
     ]
   }
 }

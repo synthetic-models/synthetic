@@ -4,6 +4,9 @@
 
 The `KineticParameterTuner` generates kinetic parameters that ensure robust signal propagation through the network. Without tuning, random parameter values may produce unresponsive dynamics or 'flat' responses unintentionally.
 
+!!! tip "When to use tuning"
+    Use kinetic tuning whenever you want predictable, responsive network dynamics. It is enabled by default in `Builder.specify()`. You only need the manual approach below if you're using the low-level API directly.
+
 ### Why Tuning Matters
 
 In hierarchical signaling networks, signal propagation depends on the balance between forward (activation) and backward (deactivation) reaction rates. The tuner solves the full nonlinear kinetic equations to find parameters where each species reaches a target active percentage.
@@ -363,3 +366,13 @@ solver.set_parameter_values({'Km_J0': 50.0})
 
 results = solver.simulate(start=0, stop=10000, step=100)
 ```
+
+---
+
+**See also:**
+
+- [Network & Drug Design](network_and_drug_design.md) — creating network specifications
+- [Solvers & Simulation](solvers_and_simulation.md) — solver configuration and usage
+- [Data Generation](data_generation.md) — generating datasets with perturbation strategies
+- [API Reference](api_reference.md) — full API docs for `KineticParameterTuner` and other classes
+- [FAQ](faq.md) — common questions about simulation and parameter tuning

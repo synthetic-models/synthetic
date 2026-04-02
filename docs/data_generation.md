@@ -4,6 +4,9 @@
 
 Generate a scikit-learn-compatible dataset with `make_dataset_drug_response`:
 
+!!! tip "Full trajectories available"
+    Pass `return_timecourse=True` to get complete simulation trajectories alongside features and targets. See [Extended Return Format](#extended-return-format) below.
+
 ```python
 from synthetic import Builder, make_dataset_drug_response
 
@@ -227,3 +230,12 @@ X, y = make_dataset_drug_response(n=100, cell_model=vc, solver_type='roadrunner'
 ```
 
 See [Solvers & Simulation](solvers_and_simulation.md) for detailed solver documentation.
+
+---
+
+**See also:**
+
+- [Solvers & Simulation](solvers_and_simulation.md) — solver backends and configuration
+- [Advanced Workflows](advanced_workflows.md) — kinetic tuning and parameter estimation
+- [API Reference](api_reference.md) — full API docs for `make_dataset_drug_response` and utility functions
+- [FAQ](faq.md) — common data generation questions and troubleshooting

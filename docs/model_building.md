@@ -53,6 +53,9 @@ hill_archtype = ReactionArchtype(
 | `reversible` | If `True`, a `reverse_rate_law` is also required |
 | `assume_*_values` | Default values used when a `Reaction` doesn't specify its own |
 
+!!! note "Placeholder naming convention"
+    The `&` prefix marks main reactants, products, and regulators that participate in the forward direction. The `?` prefix marks regulators used only in the reverse direction of reversible reactions. These placeholders are replaced with actual species names when a `Reaction` is instantiated.
+
 ### Layer 2: Reaction — The Instance
 
 A reaction binds an archtype to actual species names and concrete values. The placeholder `&S` becomes `EGFR`, `&P` becomes `pEGFR`, etc.
@@ -78,7 +81,10 @@ rxn = Reaction(
 
 **Initial concentrations** work the same way for `reactant_values` and `product_values`.
 
-If values are omitted, the archtype's `assume_*_values` are used. The `zero_init` parameter (default `True`) controls whether unspecified concentrations default to 0.
+If values are omitted, the archtype's `assume_*_values` are used.
+
+!!! warning "Default behavior: `zero_init=True`"
+    By default, unspecified product and reactant concentrations default to 0. Set `zero_init=False` if you want to control every concentration explicitly.
 
 #### Adding Regulation (Extra States)
 
@@ -405,77 +411,12 @@ results = solver.simulate(start=0, stop=1000, step=100)
 
 ## API Reference
 
-### ReactionArchtype
+For the complete, auto-generated API documentation of `ReactionArchtype`, `Reaction`, `ModelBuilder`, and all other classes, see the [API Reference](api_reference.md) page.
 
-```python
-ReactionArchtype(
-    name: str,
-    reactants: Tuple[str],        # Placeholder names (&S, &E, ...)
-    products: Tuple[str],         # Placeholder names (&P, ...)
-    parameters: Tuple[str],       # Parameter names (Km, Vmax, ...)
-    rate_law: str,                # Mathematical expression
-    extra_states: Tuple[str] = (),
-    assume_parameters_values: dict = None,
-    assume_reactant_values: dict = None,
-    assume_product_values: dict = None,
-    reversible: bool = False,
-    reverse_rate_law: str = None,
-)
-```
+---
 
-### Reaction
+**See also:**
 
-```python
-Reaction(
-    reaction_archtype: ReactionArchtype,
-    reactants: Tuple[str],                  # Actual species names
-    products: Tuple[str],                   # Actual species names
-    reaction_name: str = '',                # Optional custom name
-    extra_states: Tuple[str] = (),          # Regulator species names
-    parameters_values: Union[dict, tuple] = (),
-    reactant_values: Union[dict, tuple] = (),
-    product_values: Union[dict, tuple] = (),
-    zero_init: bool = True,
-)
-```
-
-### ModelBuilder
-
-```python
-ModelBuilder(name: str)
-
-# Reaction management
-model.add_reaction(reaction: Reaction)
-model.delete_reaction(reaction_name: str)
-model.combine(other: ModelBuilder) -> ModelBuilder
-model.copy(overwrite_name: str = '') -> ModelBuilder
-
-# Compilation (required before get/set)
-model.precompile()
-
-# Parameter and state access
-model.get_parameters() -> dict
-model.get_state_variables() -> dict
-model.set_parameter(name: str, value: float)
-model.get_parameter(name: str) -> float
-model.set_state(name: str, value: float)
-model.get_state(name: str) -> float
-
-# Regulation mapping
-model.get_regulator_parameter_map() -> dict   # {regulator: [params]}
-model.get_parameter_regulator_map() -> dict   # {param: regulator}
-
-# Custom variables and time-dependent behavior
-model.add_custom_variables(name: str, rule: str)
-model.add_simple_piecewise(before, time, after, state_name)
-
-# Export
-model.get_antimony_model() -> str
-model.get_sbml_model() -> str
-model.save_antimony_model_as(filename: str)
-model.save_sbml_model_as(filename: str)
-model.save_model_as_pickle(filename: str)
-
-# Summary
-model.head() -> str
-```
+- [Network & Drug Design](network_and_drug_design.md) — using specs to generate networks with drugs and feedback
+- [Solvers & Simulation](solvers_and_simulation.md) — simulating compiled models with different backends
+- [Advanced Workflows](advanced_workflows.md) — kinetic tuning, parameter estimation, model export

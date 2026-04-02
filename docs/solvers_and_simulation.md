@@ -30,41 +30,44 @@ X, y = make_dataset_drug_response(n=100, cell_model=vc, solver_type='roadrunner'
 
 For custom simulation workflows, use solvers directly.
 
-### ScipySolver
+=== "ScipySolver"
 
-Uses `scipy.integrate.odeint` with optional JIT compilation:
+    Uses `scipy.integrate.odeint` with optional JIT compilation:
 
-```python
-from synthetic import Builder
-from synthetic.Solver.ScipySolver import ScipySolver
+    ```python
+    from synthetic import Builder
+    from synthetic.Solver.ScipySolver import ScipySolver
 
-vc = Builder.specify(degree_cascades=[2, 3, 4], random_seed=42)
+    vc = Builder.specify(degree_cascades=[2, 3, 4], random_seed=42)
 
-# Get Antimony model string
-antimony = vc.model.get_antimony_model()
+    # Get Antimony model string
+    antimony = vc.model.get_antimony_model()
 
-# Compile and simulate
-solver = ScipySolver()
-solver.compile(antimony, jit=True)  # Enable JIT for faster execution
-results = solver.simulate(start=0, stop=10000, step=50)
+    # Compile and simulate
+    solver = ScipySolver()
+    solver.compile(antimony, jit=True)  # Enable JIT for faster execution
+    results = solver.simulate(start=0, stop=10000, step=50)
 
-print(results.head())
-```
+    print(results.head())
+    ```
 
-### RoadrunnerSolver
+=== "RoadrunnerSolver"
 
-Uses libRoadRunner for SBML simulation. Requires SBML format (not Antimony):
+    Uses libRoadRunner for SBML simulation:
 
-```python
-from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+    !!! warning "Requires SBML format"
+        RoadrunnerSolver requires SBML, not Antimony. Use `model.get_sbml_model()`.
 
-# Get SBML model string
-sbml = vc.model.get_sbml_model()
+    ```python
+    from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
 
-solver = RoadrunnerSolver()
-solver.compile(sbml)
-results = solver.simulate(start=0, stop=10000, step=50)
-```
+    # Get SBML model string
+    sbml = vc.model.get_sbml_model()
+
+    solver = RoadrunnerSolver()
+    solver.compile(sbml)
+    results = solver.simulate(start=0, stop=10000, step=50)
+    ```
 
 ### Simulation Output
 
@@ -113,24 +116,27 @@ Run the same simulation with both solvers to compare results. Both produce ident
 
 ![Timecourse simulation with RoadrunnerSolver](images/timecourse_roadrunner.png)
 
-```python
-from synthetic.Solver.ScipySolver import ScipySolver
-from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+=== "ScipySolver"
 
-# ScipySolver
-solver_scipy = ScipySolver()
-solver_scipy.compile(vc.model.get_antimony_model(), jit=False)
-tc_scipy = solver_scipy.simulate(start=0, stop=10000, step=50)
+    ```python
+    from synthetic.Solver.ScipySolver import ScipySolver
 
-# RoadrunnerSolver
-solver_rr = RoadrunnerSolver()
-solver_rr.compile(vc.model.get_sbml_model())
-tc_rr = solver_rr.simulate(start=0, stop=10000, step=50)
+    solver_scipy = ScipySolver()
+    solver_scipy.compile(vc.model.get_antimony_model(), jit=False)
+    tc_scipy = solver_scipy.simulate(start=0, stop=10000, step=50)
+    print(f"ScipySolver Oa: {tc_scipy['Oa'].iloc[-1]:.4f}")
+    ```
 
-# Compare outcome at final timepoint
-print(f"ScipySolver Oa: {tc_scipy['Oa'].iloc[-1]:.4f}")
-print(f"RoadrunnerSolver Oa: {tc_rr['Oa'].iloc[-1]:.4f}")
-```
+=== "RoadrunnerSolver"
+
+    ```python
+    from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
+
+    solver_rr = RoadrunnerSolver()
+    solver_rr.compile(vc.model.get_sbml_model())
+    tc_rr = solver_rr.simulate(start=0, stop=10000, step=50)
+    print(f"RoadrunnerSolver Oa: {tc_rr['Oa'].iloc[-1]:.4f}")
+    ```
 
 ## HTTP Solver for Remote Simulation
 
@@ -200,3 +206,14 @@ async def simulate(req: SimulationRequest):
 | Need robust single simulations | RoadrunnerSolver |
 | Remote/distributed computing | HTTPSolver |
 | Parameter estimation loops | ScipySolver with `jit=False` |
+
+!!! info "JIT warmup"
+    The first call to `ScipySolver.simulate()` with `jit=True` compiles the ODE function via Numba, which can take several seconds. Subsequent simulations are fast. This is a one-time cost per model.
+
+---
+
+**See also:**
+
+- [Data Generation](data_generation.md) — using solvers to generate datasets
+- [Advanced Workflows](advanced_workflows.md) — parameter estimation with solvers
+- [API Reference](api_reference.md) — full API docs for solver classes
