@@ -81,7 +81,7 @@
     2. **Simulation too short** — the network may not have reached steady state. Increase `stop` time.
     3. **Initial conditions are zero** — check that species have non-zero initial concentrations.
 
-    See [Kinetic Parameter Tuning](advanced_workflows.md#kinetic-parameter-tuning) for the tuning guide.
+    See [Kinetic Parameter Tuning](advanced_features.md#kinetic-parameter-tuning) for the tuning guide.
 
 ??? question "Which solver should I use?"
 
@@ -157,7 +157,7 @@
     1. **Enable kinetic tuning** — produces parameters that yield stable dynamics
     2. **Reduce perturbation magnitude** — use a smaller `rsd` value
     3. **Increase simulation points** — more timepoints can help the solver converge
-    4. **Switch solver** — `RoadrunnerSolver` is more robust for difficult models
+    4. **Switch solver** — Different solvers have different stability properties. Try `RoadrunnerSolver` if `ScipySolver` fails.
 
     Check the success rate via the metadata:
 

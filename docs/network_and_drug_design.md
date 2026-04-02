@@ -270,5 +270,6 @@ if tuner is not None:
 **See also:**
 
 - [Data Generation](data_generation.md) — generating datasets from compiled models
-- [Advanced Workflows](advanced_workflows.md) — kinetic tuning and parameter estimation
+- [Advanced Features](advanced_features.md) — kinetic tuning
+- [Benchmarking](benchmarking.md) — parameter estimation
 - [API Reference](api_reference.md) — full API docs for `Builder`, `VirtualCell`, and `Drug`

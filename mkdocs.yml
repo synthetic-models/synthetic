@@ -23,7 +23,6 @@ theme:
     - content.code.copy
     - content.code.annotate
     - navigation.footer
-    - navigation.tabs
     - navigation.top
     - navigation.sections
     - search.suggest
@@ -63,7 +62,10 @@ nav:
       - Network & Drug Design: network_and_drug_design.md
       - Solvers & Simulation: solvers_and_simulation.md
       - Data Generation: data_generation.md
-      - Advanced Workflows: advanced_workflows.md
+      - Architecture: architecture.md
+      - Model Export & Interoperability: model_export.md
+      - Benchmarking Scenarios: benchmarking.md
+      - Advanced Features: advanced_features.md
   - Reference:
       - API Reference: api_reference.md
       - FAQ: faq.md

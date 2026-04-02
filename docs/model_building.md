@@ -419,4 +419,6 @@ For the complete, auto-generated API documentation of `ReactionArchtype`, `React
 
 - [Network & Drug Design](network_and_drug_design.md) — using specs to generate networks with drugs and feedback
 - [Solvers & Simulation](solvers_and_simulation.md) — simulating compiled models with different backends
-- [Advanced Workflows](advanced_workflows.md) — kinetic tuning, parameter estimation, model export
+- [Advanced Features](advanced_features.md) — kinetic tuning
+- [Model Export](model_export.md) — export and interoperability
+- [Benchmarking](benchmarking.md) — parameter estimation

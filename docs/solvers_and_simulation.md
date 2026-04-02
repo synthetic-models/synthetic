@@ -2,13 +2,12 @@
 
 ## Solver Overview
 
-Synthetic provides three solver backends for ODE simulation:
+Synthetic provides two built-in solver backends for ODE simulation (plus an HTTP solver for remote workflows — see [HTTP Solver](advanced_features.md#http-solver-for-remote-simulation)):
 
 | Solver | Input Format | Features | Use Case |
 |--------|-------------|----------|----------|
 | **ScipySolver** | Antimony | JIT compilation via numba, fast batch | Default, parameter sweeps |
 | **RoadrunnerSolver** | SBML | Full SBML support, robust | Complex models, single simulations |
-| **HTTPSolver** | HTTP API | Remote simulation, distributed computing | Server-based workflows |
 
 ## Using the Built-in Solver
 
@@ -138,64 +137,6 @@ Run the same simulation with both solvers to compare results. Both produce ident
     print(f"RoadrunnerSolver Oa: {tc_rr['Oa'].iloc[-1]:.4f}")
     ```
 
-## HTTP Solver for Remote Simulation
-
-The `HTTPSolver` sends simulation requests to a remote server via HTTP. This is useful for distributed computing or when the simulation engine runs on a separate machine.
-
-### Client Usage
-
-```python
-from synthetic.Solver.HTTPSolver import HTTPSolver
-
-solver = HTTPSolver()
-
-# Connect and validate endpoint
-solver.compile("http://localhost:8000/simulate")
-
-# Get default states and parameters
-states = solver.get_state_defaults()
-params = solver.get_parameter_defaults()
-
-# Override values
-solver.set_state_values({"R1_1": 1000.0})
-solver.set_parameter_values({"Km_J0": 10.0})
-
-# Run simulation
-results = solver.simulate(start=0, stop=60, step=0.5)
-```
-
-### Server Setup
-
-The HTTP solver requires a server implementing the simulation API. See `examples/httpsolver_api.md` for the full API specification. A minimal FastAPI server:
-
-```python
-from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import Dict, Optional
-
-app = FastAPI()
-
-class SimulationRequest(BaseModel):
-    start: float
-    stop: float
-    step: float
-    state_values: Optional[Dict[str, float]] = None
-    parameter_values: Optional[Dict[str, float]] = None
-
-@app.get("/states")
-async def get_states():
-    return {"S1": 100.0, "S1a": 0.0}
-
-@app.get("/parameters")
-async def get_parameters():
-    return {"Vmax_J0": 100.0, "Km_J0": 50.0}
-
-@app.post("/simulate")
-async def simulate(req: SimulationRequest):
-    # Run simulation with requested parameters
-    return {"time": [req.start, req.stop], "S1": [100.0, 90.0], "S1a": [0.0, 10.0]}
-```
-
 ## Solver Selection Guide
 
 | Scenario | Recommended Solver |
@@ -204,7 +145,7 @@ async def simulate(req: SimulationRequest):
 | Batch simulations (1000+ samples) | ScipySolver with `jit=True` |
 | Complex SBML models | RoadrunnerSolver |
 | Need robust single simulations | RoadrunnerSolver |
-| Remote/distributed computing | HTTPSolver |
+| Remote/distributed computing | HTTPSolver (see [HTTP Solver](advanced_features.md#http-solver-for-remote-simulation)) |
 | Parameter estimation loops | ScipySolver with `jit=False` |
 
 !!! info "JIT warmup"
@@ -215,5 +156,5 @@ async def simulate(req: SimulationRequest):
 **See also:**
 
 - [Data Generation](data_generation.md) — using solvers to generate datasets
-- [Advanced Workflows](advanced_workflows.md) — parameter estimation with solvers
+- [Benchmarking](benchmarking.md) — parameter estimation with solvers
 - [API Reference](api_reference.md) — full API docs for solver classes

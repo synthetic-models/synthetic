@@ -147,6 +147,8 @@ Head to the [Quick Start](quick_start.md) guide for more details.
 | [Network & Drug Design](network_and_drug_design.md) | Degree cascades, feedback, drug mechanisms, combination therapy |
 | [Solvers & Simulation](solvers_and_simulation.md) | Solver backends, timecourse simulation, HTTP solver |
 | [Data Generation](data_generation.md) | Perturbation strategies, extended formats, feature analysis |
-| [Advanced Workflows](advanced_workflows.md) | Kinetic tuning, parameter estimation, model export, ML benchmarking |
+| [Advanced Features](advanced_features.md) | Kinetic tuning, HTTP solver |
+| [Model Export](model_export.md) | Model export and interoperability |
+| [Benchmarking](benchmarking.md) | Parameter estimation, ML benchmarking |
 | [API Reference](api_reference.md) | Auto-generated API docs from source docstrings |
 | [FAQ](faq.md) | Common questions and troubleshooting |

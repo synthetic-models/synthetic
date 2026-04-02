@@ -58,7 +58,9 @@ X, y = make_dataset_drug_response(
 - [Network & Drug Design](network_and_drug_design.md) - Understand network topology and drug mechanisms
 - [Solvers & Simulation](solvers_and_simulation.md) - Direct solver usage and timecourse simulation
 - [Data Generation](data_generation.md) - Perturbation strategies, extended formats, and feature analysis
-- [Advanced Workflows](advanced_workflows.md) - Kinetic tuning, parameter estimation, and model export
+- [Advanced Features](advanced_features.md) - Kinetic tuning, HTTP solver
+- [Model Export](model_export.md) - Model export and interoperability
+- [Benchmarking](benchmarking.md) - Parameter estimation, ML benchmarking
 - [API Reference](api_reference.md) - Full API documentation
 
 !!! warning "Using the low-level API?"

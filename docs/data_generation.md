@@ -236,6 +236,7 @@ See [Solvers & Simulation](solvers_and_simulation.md) for detailed solver docume
 **See also:**
 
 - [Solvers & Simulation](solvers_and_simulation.md) — solver backends and configuration
-- [Advanced Workflows](advanced_workflows.md) — kinetic tuning and parameter estimation
+- [Advanced Features](advanced_features.md) — kinetic tuning
+- [Benchmarking](benchmarking.md) — parameter estimation
 - [API Reference](api_reference.md) — full API docs for `make_dataset_drug_response` and utility functions
 - [FAQ](faq.md) — common data generation questions and troubleshooting

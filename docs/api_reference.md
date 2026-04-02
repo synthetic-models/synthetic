@@ -113,7 +113,7 @@ ODE simulation backends. Both concrete solvers inherit from the abstract `Solver
 
 ## Utilities
 
-Helpers for parameter tuning, feature generation, and dataset creation. See [Data Generation](data_generation.md) and [Advanced Workflows](advanced_workflows.md) for context.
+Helpers for parameter tuning, feature generation, and dataset creation. See [Data Generation](data_generation.md), [Advanced Features](advanced_features.md), and [Benchmarking](benchmarking.md) for context.
 
 ::: synthetic.utils.kinetic_tuner.KineticParameterTuner
     options:
