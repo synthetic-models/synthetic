@@ -103,3 +103,34 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def high_level_api_example():
+    """
+    Example: Using the high-level API with a remote HTTP solver.
+
+    This demonstrates how to use RemoteCell + make_dataset_drug_response
+    to generate a synthetic dataset from a model served over HTTP.
+
+    Requires a running HTTP solver server (see example server in docstring above).
+    """
+    from synthetic import Builder, make_dataset_drug_response
+
+    # Create a remote cell model from an HTTP endpoint
+    rc = Builder.from_endpoint(
+        f"{SERVER_URL}/simulate",
+        drug_names=["D"],  # Exclude drug species from features
+        simulation_end=10000.0,
+    )
+
+    # Generate a dataset using the remote model
+    X, y = make_dataset_drug_response(
+        n=100,
+        cell_model=rc,
+        solver_type='http',
+        perturbation_type='lognormal',
+        perturbation_params={'shape': 0.3},
+        target_specie='Oa',
+    )
+    print(f"Features shape: {X.shape}")
+    print(f"Targets shape: {y.shape}")

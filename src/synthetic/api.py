@@ -343,6 +343,130 @@ class VirtualCell:
         return self._tuner
 
 
+class _RemoteModelProxy:
+    """Lightweight proxy providing ModelBuilder-like parameter access backed by remote data."""
+
+    def __init__(self, parameters: Dict[str, float]):
+        self._parameters = parameters
+
+    def get_parameters(self) -> Dict[str, float]:
+        return self._parameters.copy()
+
+
+class RemoteCell:
+    """
+    High-level abstraction for a remote cell model accessed via HTTP.
+
+    Mirrors the VirtualCell interface but backed by an HTTP endpoint
+    instead of a locally built model. Uses HTTPSolver internally to
+    fetch states and parameters from the remote server.
+
+    Example:
+        rc = RemoteCell("http://localhost:8000/simulate")
+        rc.compile()
+        X, y = make_dataset_drug_response(
+            n=100, cell_model=rc, solver_type='http',
+            perturbation_type='lognormal',
+        )
+    """
+
+    def __init__(
+        self,
+        endpoint: str,
+        simulation_end: float = 10000.0,
+        drug_names: Optional[List[str]] = None,
+        timeout: float = 300.0,
+    ):
+        """
+        Initialize a remote cell model.
+
+        Args:
+            endpoint: HTTP endpoint URL (e.g., "http://localhost:8000/simulate")
+            simulation_end: Simulation end time for make_dataset_drug_response (default: 10000.0)
+            drug_names: Names of drug species on the server to exclude from features
+            timeout: Request timeout in seconds (default: 300.0)
+        """
+        self._endpoint = endpoint
+        self._simulation_end = simulation_end
+        self._drug_names = drug_names or []
+        self._timeout = timeout
+        self._compiled = False
+        self._drugs: List[Tuple] = []  # Compatible with VirtualCell interface
+
+        # Internal solver and cached remote data
+        self._solver = None
+        self._remote_states: Optional[Dict[str, float]] = None
+        self._remote_parameters: Optional[Dict[str, float]] = None
+
+    def compile(self) -> 'RemoteCell':
+        """
+        Connect to the HTTP endpoint and fetch model metadata.
+
+        Validates the endpoint is reachable, then fetches default states
+        and parameters from the server's /states and /parameters endpoints.
+
+        Returns:
+            self for method chaining
+
+        Raises:
+            ValueError: If the endpoint is unreachable
+        """
+        from .Solver.HTTPSolver import HTTPSolver
+
+        self._solver = HTTPSolver()
+        self._solver.compile(self._endpoint, timeout=self._timeout)
+        self._remote_states = self._solver.get_state_defaults()
+        self._remote_parameters = self._solver.get_parameter_defaults()
+        self._compiled = True
+        return self
+
+    def get_initial_values(self, exclude_drugs: bool = True) -> Dict[str, float]:
+        """
+        Get initial species values from the remote server.
+
+        Args:
+            exclude_drugs: Whether to exclude drug species (default: True)
+
+        Returns:
+            Dictionary mapping species names to initial values
+
+        Raises:
+            ValueError: If model is not compiled
+        """
+        if not self._compiled:
+            raise ValueError("Model must be compiled first. Call compile().")
+        values = self._remote_states.copy()
+        if exclude_drugs:
+            for drug_name in self._drug_names:
+                values.pop(drug_name, None)
+        return values
+
+    @property
+    def spec(self):
+        """Not available for remote models. Returns None."""
+        return None
+
+    @property
+    def model(self) -> _RemoteModelProxy:
+        """
+        Access a lightweight model proxy providing get_parameters().
+
+        Returns:
+            _RemoteModelProxy instance
+
+        Raises:
+            ValueError: If model is not compiled
+        """
+        if not self._compiled:
+            raise ValueError("Model must be compiled first. Call compile().")
+        return _RemoteModelProxy(self._remote_parameters)
+
+    @property
+    def solver(self):
+        """Access the underlying compiled HTTPSolver."""
+        return self._solver
+
+
 class Builder:
     """
     Factory for creating virtual cell models.
@@ -401,10 +525,46 @@ class Builder:
             vc.compile()
         return vc
 
+    @staticmethod
+    def from_endpoint(
+        endpoint: str,
+        simulation_end: float = 10000.0,
+        drug_names: Optional[List[str]] = None,
+        timeout: float = 300.0,
+        auto_compile: bool = True,
+    ) -> 'RemoteCell':
+        """
+        Create a remote cell model from an HTTP endpoint.
+
+        The server must implement the HTTP Solver API:
+        - POST /simulate: Run simulation with optional state/parameter overrides
+        - GET /states: Return default state values
+        - GET /parameters: Return default parameter values
+
+        Args:
+            endpoint: HTTP endpoint URL (e.g., "http://localhost:8000/simulate")
+            simulation_end: Simulation end time for make_dataset_drug_response (default: 10000.0)
+            drug_names: Names of drug species on the server to exclude from features
+            timeout: Request timeout in seconds (default: 300.0)
+            auto_compile: Validate endpoint and fetch metadata immediately (default: True)
+
+        Returns:
+            RemoteCell instance (compiled if auto_compile=True)
+        """
+        rc = RemoteCell(
+            endpoint=endpoint,
+            simulation_end=simulation_end,
+            drug_names=drug_names,
+            timeout=timeout,
+        )
+        if auto_compile:
+            rc.compile()
+        return rc
+
 
 def make_dataset_drug_response(
     n: int,
-    cell_model: VirtualCell,
+    cell_model: Union[VirtualCell, 'RemoteCell'],
     target_specie: str = 'Oa',
     perturbation_type: str = 'conserve_rules',
     perturbation_params: Optional[Dict[str, Any]] = None,
@@ -448,7 +608,7 @@ def make_dataset_drug_response(
         simulation_params: Dictionary with 'start', 'end', 'points' keys
         seed: Random seed for reproducibility (initial value perturbations)
         param_seed: Random seed for parameter perturbations (uses seed if not provided)
-        solver_type: Type of solver ('scipy' or 'roadrunner')
+        solver_type: Type of solver ('scipy', 'roadrunner', or 'http')
         jit: Whether to use JIT compilation (only for scipy solver)
         verbose: Whether to show progress bar
         require_all_successful: Whether to require all samples to succeed (default: False)
@@ -503,8 +663,16 @@ def make_dataset_drug_response(
     # Note: This is optional - if model_spec is not provided, conserve_rules will use
     # the species_range dictionary if provided, or auto-generate from initial_values
     if perturbation_type == 'conserve_rules' and 'model_spec' not in perturbation_params and 'species_range' not in perturbation_params:
-        perturbation_params = perturbation_params.copy()
-        perturbation_params['model_spec'] = cell_model.spec
+        if hasattr(cell_model, 'spec') and cell_model.spec is not None:
+            perturbation_params = perturbation_params.copy()
+            perturbation_params['model_spec'] = cell_model.spec
+        else:
+            raise ValueError(
+                "conserve_rules perturbation requires network topology (spec), "
+                "which is not available for remote models. Either:\n"
+                "  - Use a different perturbation_type (e.g., 'lognormal')\n"
+                "  - Provide 'species_range' in perturbation_params explicitly"
+            )
 
     # Get initial values (excluding drugs)
     initial_values = cell_model.get_initial_values(exclude_drugs=True)
@@ -523,8 +691,15 @@ def make_dataset_drug_response(
         solver = RoadrunnerSolver()
         sbml_str = cell_model.model.get_sbml_model()
         solver.compile(sbml_str)
+    elif solver_type == 'http':
+        if not isinstance(cell_model, RemoteCell):
+            raise ValueError(
+                "solver_type='http' requires a RemoteCell. "
+                "Use RemoteCell(endpoint_url) or Builder.from_endpoint(url)."
+            )
+        solver = cell_model.solver
     else:
-        raise ValueError(f"Unsupported solver_type: {solver_type}. Use 'scipy' or 'roadrunner'")
+        raise ValueError(f"Unsupported solver_type: {solver_type}. Use 'scipy', 'roadrunner', or 'http'")
 
     # Generate feature and target data using make_data
     result = make_data(
@@ -574,4 +749,4 @@ def make_dataset_drug_response(
         raise NotImplementedError("return_details=False is not implemented in this version.")
 
 
-__all__ = ['VirtualCell', 'Builder', 'make_dataset_drug_response']
+__all__ = ['VirtualCell', 'RemoteCell', 'Builder', 'make_dataset_drug_response']

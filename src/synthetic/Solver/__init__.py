@@ -5,3 +5,8 @@ try:
     from .RoadrunnerSolver import RoadrunnerSolver
 except ImportError:
     RoadrunnerSolver = None
+
+try:
+    from .HTTPSolver import HTTPSolver
+except ImportError:
+    HTTPSolver = None

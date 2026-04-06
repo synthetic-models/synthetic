@@ -2,7 +2,7 @@
 # based on biochemical laws common in cancer cell signalling networks.
 
 # High-level API
-from .api import Builder, VirtualCell, make_dataset_drug_response
+from .api import Builder, VirtualCell, RemoteCell, make_dataset_drug_response
 
 # Core model building
 from .ModelBuilder import ModelBuilder
@@ -37,6 +37,7 @@ __all__ = [
     # High-level API
     'Builder',
     'VirtualCell',
+    'RemoteCell',
     'make_dataset_drug_response',
 
     # Core model building
