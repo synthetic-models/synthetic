@@ -39,9 +39,24 @@ We use a "Gatekeeper" pattern for matrix tests. You will see several checks in y
 2.  If any check fails, click on "Details" to view the logs, fix the issue locally, and push again. The PR will update automatically.
 3.  Once checks are green and (if required) a review is approved, click **Merge pull request**.
 
-## Automated Post-Merge Actions
-Upon merging to `main`, the CI workflow will automatically:
-1.  Verify if the version in `pyproject.toml` has been bumped.
-2.  If a new version is detected, build and publish the package to **PyPI**.
-3.  Create and push a new **Git Tag** matching the version number.
-4.  Update the **Documentation Site** via the `docs.yml` workflow.
+## Release Strategy: Option 1 (Release PRs)
+
+We use a "Release PR" strategy to bundle multiple features into a single versioned release.
+
+### 1. Development Phase
+Merge multiple `feature/` branches into `main` without updating the version in `pyproject.toml`. The CI will run tests but will **skip** publishing to PyPI.
+
+### 2. Preparation Phase
+When ready to release, create a specific release branch:
+```bash
+git checkout -b release/v1.2.3
+```
+
+### 3. Update Version and Changelog
+1.  Update the `version` field in `pyproject.toml`.
+2.  Update `CHANGELOG.md` with the new version number and a summary of changes since the last release.
+
+### 4. Open Release PR
+Open a PR for the `release/` branch. Once merged to `main`, the CI will detect the version bump and automatically:
+-   Build and upload the package to **PyPI**.
+-   Create a **Git Tag** (e.g., `v1.2.3`).
