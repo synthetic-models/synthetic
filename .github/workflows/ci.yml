@@ -6,8 +6,13 @@ on:
   pull_request:
     branches: [main, dev]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    name: Run Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -32,8 +37,18 @@ jobs:
       - name: Run tests
         run: uv run pytest tests/ -v
 
-  publish:
+  check-tests-passed:
+    name: All Required Tests Passed
     needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check test results
+        if: needs.test.result != 'success'
+        run: exit 1
+
+  publish:
+    needs: check-tests-passed
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
@@ -78,7 +93,7 @@ jobs:
         run: uv publish --token ${{ secrets.PYPI_TOKEN }}
 
   tag:
-    needs: test
+    needs: check-tests-passed
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
