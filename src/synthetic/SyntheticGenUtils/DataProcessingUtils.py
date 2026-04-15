@@ -67,7 +67,7 @@ def process_time_course_data(results: List[Dict],
     Args:
         results: List of dictionaries containing time course data
         capture_species: Species to capture ('all' or list of species)
-        model_spec: ModelSpecification object (required if capture_species='all')
+        model_spec: BaseSpec object (required if capture_species='all')
         
     Returns:
         DataFrame with processed time course data

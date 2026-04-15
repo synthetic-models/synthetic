@@ -74,12 +74,12 @@ def validate_model_spec_has_species(model_spec) -> None:
     Validate that model specification has required species lists.
     
     Args:
-        model_spec: ModelSpecification object
+        model_spec: BaseSpec object
         
     Raises:
         ValueError: If model spec lacks required species attributes
     """
-    required_attrs = ['A_species', 'B_species', 'C_species']
+    required_attrs = ['species_list', 'regulations']
     missing_attrs = [attr for attr in required_attrs if not hasattr(model_spec, attr)]
     
     if missing_attrs:
