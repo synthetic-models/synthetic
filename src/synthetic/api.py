@@ -21,6 +21,9 @@ from typing import List, Dict, Tuple, Optional, Any, Union
 import numpy as np
 import pandas as pd
 
+from synthetic import Solver
+
+from .Specs.BaseSpec import BaseSpec
 from .Specs.DegreeInteractionSpec import DegreeInteractionSpec
 from .Specs.Drug import Drug
 from .ModelBuilder import ModelBuilder
@@ -42,10 +45,9 @@ class VirtualCell:
 
     def __init__(
         self,
-        degree_cascades: Optional[List[int]] = None,
+        spec: Optional[Union[List[int], 'BaseSpec', ModelBuilder]] = None,
         name: str = "VirtualCell",
         random_seed: Optional[int] = None,
-        feedback_density: float = 0.5,
         auto_compile: bool = True,
         auto_drug: bool = True,
         drug_name: str = "D",
@@ -53,43 +55,52 @@ class VirtualCell:
         drug_value: float = 100.0,
         drug_regulation_type: str = "down",
         simulation_end: float = 10000.0,
-        spec: Optional[Union[List[int], 'BaseSpec']] = None,
+        **kwargs,
     ):
         """
         Initialize a virtual cell model.
 
         Args:
-            degree_cascades: Deprecated. Use 'spec' instead.
+            spec: Specification (List[int] for degree cascades, a BaseSpec instance, or ModelBuilder)
             name: Name for the virtual cell
             random_seed: Optional random seed for reproducibility
-            feedback_density: Proportion of feedback connections (0-1)
             auto_compile: Compile immediately after creation (default: True)
-            auto_drug: Auto-generate a drug targeting degree 1 R species (default: True)
+            auto_drug: Auto-generate a drug targeting spec-defined species (default: True)
             drug_name: Name for auto-generated drug (default: "D")
             drug_start_time: Time at which auto-drug becomes active (default: 5000.0)
             drug_value: Active concentration for auto-drug (default: 100.0)
             drug_regulation_type: Regulation type for auto-drug: "up" or "down" (default: "down")
             simulation_end: Simulation end time for make_dataset_drug_response (default: 10000.0)
-            spec: Specification (List[int] for degree cascades or a BaseSpec instance)
+            **kwargs: Additional parameters for backward compatibility or spec-specific options:
+                - degree_cascades: List[int] (legacy)
+                - feedback_density: float (default: 0.5)
         """
-        # Resolve spec
-        actual_spec = spec if spec is not None else degree_cascades
-        if actual_spec is None:
-            raise ValueError("Must provide either 'spec' or 'degree_cascades'")
 
-        from .Specs.BaseSpec import BaseSpec
+        # Handle legacy degree_cascades/spec parameter resolution
+        actual_spec = spec
+        if actual_spec is None:
+            actual_spec = kwargs.get('degree_cascades')
+
+        if actual_spec is None:
+            raise ValueError("Must provide 'spec' (or 'degree_cascades')")
+
+        # Set internal spec representation
+        self._spec_instance: Optional[BaseSpec] = None
+        self._model_instance: Optional[ModelBuilder] = None
+        self._degree_cascades: Optional[List[int]] = None
+
         if isinstance(actual_spec, list):
             self._degree_cascades = actual_spec
-            self._spec_instance = None
         elif isinstance(actual_spec, BaseSpec):
-            self._degree_cascades = None
             self._spec_instance = actual_spec
+        elif isinstance(actual_spec, ModelBuilder):
+            self._model_instance = actual_spec
         else:
             raise TypeError(f"Unsupported spec type: {type(actual_spec)}")
 
         self._name = name
         self._random_seed = random_seed
-        self._feedback_density = feedback_density
+        self._feedback_density = kwargs.get('feedback_density', 0.5)
         self._auto_compile = auto_compile
         self._auto_drug = auto_drug
         self._auto_drug_name: Optional[str] = drug_name if auto_drug else None
@@ -166,17 +177,14 @@ class VirtualCell:
 
     def _generate_auto_drug(self) -> None:
         """
-        Generate auto-drug based on degree_cascades[0].
-
-        Creates a drug targeting all degree 1 R species (R1_1, R1_2, etc.)
-        with count based on degree_cascades[0].
+        Generate auto-drug based on specification targets.
         """
-        cascade_count = self._degree_cascades[0]
-        targets = []
+        if self._spec is None:
+            return
 
-        # Generate targets: R1_1, R1_2, ... based on cascade_count
-        for i in range(cascade_count):
-            targets.append(f"R1_{i + 1}")
+        targets = self._spec.get_auto_drug_targets()
+        if not targets:
+            return
 
         # Create and store auto-drug
         drug = Drug(
@@ -219,33 +227,40 @@ class VirtualCell:
         Returns:
             self for method chaining
         """
-        # 1. Resolve Spec
-        if self._spec_instance is not None:
+        # 1. Resolve Spec / Model
+        if self._model_instance is not None:
+            self._model = self._model_instance
+        elif self._spec_instance is not None:
             self._spec = self._spec_instance
         else:
+            # Legacy/default DegreeInteractionSpec
             self._spec = DegreeInteractionSpec(degree_cascades=self._degree_cascades)
             self._spec.generate_specifications(
                 random_seed=self._random_seed,
                 feedback_density=self._feedback_density,
             )
 
-        # 2. Generate auto-drug if enabled (only if spec is DegreeInteractionSpec)
-        if self._auto_drug and self._degree_cascades is not None:
+        # 2. Generate auto-drug if enabled
+        if self._auto_drug:
             self._generate_auto_drug()
 
         # 3. Add drugs (auto-drug + any manually added)
-        for drug, value in self._drugs:
-            self._spec.add_drug(drug, value)
+        if self._spec is not None:
+            for drug, value in self._drugs:
+                self._spec.add_drug(drug, value)
 
-        # 4. Generate model
-        self._model = self._spec.generate_network(
-            network_name=self._name,
-            mean_range_species=mean_range_species,
-            rangeScale_params=rangeScale_params,
-            rangeMultiplier_params=rangeMultiplier_params,
-            random_seed=self._random_seed,
-        )
-        self._model.precompile()
+        # 4. Generate model (if not already provided)
+        if self._model is None:
+            self._model = self._spec.generate_network(
+                network_name=self._name,
+                mean_range_species=mean_range_species,
+                rangeScale_params=rangeScale_params,
+                rangeMultiplier_params=rangeMultiplier_params,
+                random_seed=self._random_seed,
+            )
+
+        if not self._model.pre_compiled:
+            self._model.precompile()
 
         # 5. Apply kinetic tuning if requested
         if use_kinetic_tuner:
@@ -324,17 +339,17 @@ class VirtualCell:
         return self._tuner.get_target_concentrations()
 
     @property
-    def spec(self) -> DegreeInteractionSpec:
+    def spec(self) -> Optional[BaseSpec]:
         """
         Access to underlying specification.
 
-        Returns the DegreeInteractionSpec object. Raises ValueError if model
-        has not been compiled.
+        Returns the BaseSpec object. Raises ValueError if model
+        has not been compiled and was not initialized from a ModelBuilder.
 
         Returns:
-            DegreeInteractionSpec object
+            BaseSpec object or None
         """
-        if self._spec is None:
+        if self._spec is None and self._model is None:
             raise ValueError("Model must be compiled first. Call compile().")
         return self._spec
 
@@ -516,10 +531,9 @@ class Builder:
 
     @staticmethod
     def specify(
-        degree_cascades: Optional[Union[List[int], 'BaseSpec']] = None,
+        spec: Optional[Union[List[int], 'BaseSpec', ModelBuilder]] = None,
         name: str = "VirtualCell",
         random_seed: Optional[int] = None,
-        feedback_density: float = 1,
         auto_compile: bool = True,
         auto_drug: bool = True,
         drug_name: str = "D",
@@ -527,33 +541,33 @@ class Builder:
         drug_value: float = 100.0,
         drug_regulation_type: str = "down",
         simulation_end: float = 10000.0,
-        spec: Optional[Union[List[int], 'BaseSpec']] = None,
+        **kwargs,
     ) -> VirtualCell:
         """
         Create a virtual cell specification.
 
         Args:
-            degree_cascades: Specification (List[int] for degree cascades or a BaseSpec instance)
+            spec: Specification (List[int] for degree cascades, a BaseSpec instance, or ModelBuilder)
             name: Name for the virtual cell
             random_seed: Optional random seed for reproducibility
-            feedback_density: Proportion of feedback connections (0-1)
             auto_compile: Compile immediately after creation (default: True)
-            auto_drug: Auto-generate a drug targeting degree 1 R species (default: True)
+            auto_drug: Auto-generate a drug targeting spec-defined species (default: True)
             drug_name: Name for auto-generated drug (default: "D")
             drug_start_time: Time at which auto-drug becomes active (default: 5000.0)
             drug_value: Active concentration for auto-drug (default: 100.0)
             drug_regulation_type: Regulation type for auto-drug: "up" or "down" (default: "down")
             simulation_end: Simulation end time for make_dataset_drug_response (default: 10000.0)
-            spec: Alias for degree_cascades.
+            **kwargs: Additional parameters for backward compatibility or spec-specific options:
+                - degree_cascades: List[int] (legacy)
+                - feedback_density: float (default: 0.5)
 
         Returns:
             VirtualCell instance (compiled if auto_compile=True)
         """
         vc = VirtualCell(
-            degree_cascades=degree_cascades,
+            spec=spec,
             name=name,
             random_seed=random_seed,
-            feedback_density=feedback_density,
             auto_compile=auto_compile,
             auto_drug=auto_drug,
             drug_name=drug_name,
@@ -561,9 +575,42 @@ class Builder:
             drug_value=drug_value,
             drug_regulation_type=drug_regulation_type,
             simulation_end=simulation_end,
-            spec=spec,
+            **kwargs,
         )
         return vc
+
+    @staticmethod
+    def from_degree_cascades(
+        cascades: List[int],
+        feedback_density: float = 0.5,
+        name: str = "VirtualCell",
+        random_seed: Optional[int] = None,
+        auto_compile: bool = True,
+        **kwargs
+    ) -> VirtualCell:
+        """
+        Create a virtual cell from degree cascades.
+
+        Args:
+            cascades: List of cascade counts per degree
+            feedback_density: Proportion of feedback connections (0-1)
+            name: Name for the virtual cell
+            random_seed: Optional random seed for reproducibility
+            auto_compile: Compile immediately after creation (default: True)
+            **kwargs: Additional parameters for VirtualCell
+
+        Returns:
+            VirtualCell instance (compiled if auto_compile=True)
+        """
+        spec = DegreeInteractionSpec(degree_cascades=cascades)
+        return VirtualCell(
+            spec=spec,
+            feedback_density=feedback_density,
+            name=name,
+            random_seed=random_seed,
+            auto_compile=auto_compile,
+            **kwargs
+        )
 
     @staticmethod
     def from_endpoint(
@@ -604,7 +651,7 @@ class Builder:
 
 def make_dataset_drug_response(
     n: int,
-    cell_model: Union[VirtualCell, RemoteCell, ModelBuilder, 'Solver'],
+    cell_model: Union[VirtualCell, RemoteCell, ModelBuilder, Solver],
     target_specie: str = 'Oa',
     perturbation_type: str = 'conserve_rules',
     perturbation_params: Optional[Dict[str, Any]] = None,

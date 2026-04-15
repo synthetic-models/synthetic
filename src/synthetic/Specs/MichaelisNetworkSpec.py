@@ -475,6 +475,16 @@ class MichaelisNetworkSpec(BaseSpec):
             species.extend([d.name for d in self.drugs])
         return species
     
+    def get_auto_drug_targets(self) -> List[str]:
+        """
+        Get target species for an auto-generated drug.
+        In MichaelisNetworkSpec, there is no default target logic.
+
+        Returns:
+            Empty list
+        """
+        return []
+
     def __str__(self) -> str:
         """String representation of the specification."""
         return (f"MichaelisNetworkSpec(species={len(self.species_list)}, "

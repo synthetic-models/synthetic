@@ -364,6 +364,20 @@ class DegreeInteractionSpec(MichaelisNetworkSpec):
         """Get total number of cascades across all degrees."""
         return sum(self.degree_cascades)
     
+    def get_auto_drug_targets(self) -> List[str]:
+        """
+        Get target species for an auto-generated drug.
+        In DegreeInteractionSpec, these are all degree 1 R species.
+
+        Returns:
+            List of species names (R1_1, R1_2, ...)
+        """
+        # Ensure species names have been generated
+        if not self.degree_species:
+            self.generate_species_names()
+
+        return self.degree_species.get(1, {}).get('R', [])
+
     def __str__(self) -> str:
         """String representation of the specification."""
         return (f"DegreeInteractionSpec(degrees={len(self.degree_cascades)}, "

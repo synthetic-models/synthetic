@@ -8,6 +8,8 @@ import pytest
 import numpy as np
 import pandas as pd
 from synthetic import Builder, VirtualCell, make_dataset_drug_response
+from synthetic.Specs.MichaelisNetworkSpec import MichaelisNetworkSpec
+from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
 
 
 class TestAutoDrug:
@@ -545,3 +547,53 @@ class TestPandasOutput:
         # Shapes should be the same
         assert X_scipy.shape == X_rr.shape
         assert y_scipy.shape == y_rr.shape
+
+
+class TestGenericSpecs:
+    """Tests for generic specification support in VirtualCell."""
+
+    def test_virtual_cell_with_michaelis_spec(self):
+        """Test VirtualCell works with MichaelisNetworkSpec."""
+        spec = MichaelisNetworkSpec()
+        spec.generate_specifications(num_species=3, num_regulations=2, random_seed=42)
+
+        vc = VirtualCell(spec=spec, auto_drug=False)
+        vc.compile()
+
+        assert vc._compiled
+        # Each species has an inactive and active form (e.g., S1 and S1a)
+        assert len(vc.get_species_names()) == 6
+
+        X, y = make_dataset_drug_response(n=5, cell_model=vc, target_specie='S1a')
+        assert X.shape == (5, 3)
+        assert y.shape == (5,)
+
+    def test_builder_from_degree_cascades(self):
+        """Test Builder.from_degree_cascades factory method."""
+        vc = Builder.from_degree_cascades(cascades=[1, 2], feedback_density=0.5)
+        assert vc._compiled
+        assert isinstance(vc.spec, DegreeInteractionSpec)
+        assert vc.spec.degree_cascades == [1, 2]
+
+    def test_builder_specify_with_spec_object(self):
+        """Test Builder.specify with a spec object."""
+        spec = DegreeInteractionSpec(degree_cascades=[1])
+        vc = Builder.specify(spec=spec)
+        assert vc.spec is spec
+
+    def test_auto_drug_with_custom_spec_targets(self):
+        """Test auto-drug targets are correctly identified via spec.get_auto_drug_targets()."""
+        # Create a spec where we override targets
+        class CustomSpec(MichaelisNetworkSpec):
+            def get_auto_drug_targets(self):
+                return ["S1", "S2"]
+
+        spec = CustomSpec()
+        spec.generate_specifications(num_species=3, random_seed=42)
+
+        vc = VirtualCell(spec=spec, auto_drug=True, drug_name="MyDrug")
+        vc.compile()
+
+        drugs = vc.list_drugs()
+        assert drugs[0]['name'] == "MyDrug"
+        assert drugs[0]['targets'] == ["S1", "S2"]

@@ -36,3 +36,10 @@ class BaseSpec(ABC):
         Generate a complete ModelBuilder instance from the specification.
         """
         pass
+
+    @abstractmethod
+    def get_auto_drug_targets(self) -> List[str]:
+        """
+        Get target species for an auto-generated drug.
+        """
+        pass
