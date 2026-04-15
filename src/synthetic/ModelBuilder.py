@@ -291,13 +291,40 @@ class ModelBuilder:
 
     def precompile(self):
         '''
-        Populates the state and parameter variables list in the class which are used to generate the antimony text 
-        The pre-compiled model will have functionalities for getting and setting specific state and parameter values, 
-        which gets passed directly into the antimony string 
+        Populates the state and parameter variables list in the class which are used to generate the antimony text
+        The pre-compiled model will have functionalities for getting and setting specific state and parameter values,
+        which gets passed directly into the antimony string
         '''
         self.parameters = self.get_parameters()
         self.states = self.get_state_variables()
         self.pre_compiled = True
+
+    def get_solver(self, solver_type: str = 'scipy', **kwargs) -> 'Solver':
+        """
+        Create and compile a solver for this model.
+
+        Args:
+            solver_type: Type of solver ('scipy' or 'roadrunner')
+            **kwargs: Additional arguments for solver compilation (e.g., jit=True)
+
+        Returns:
+            A compiled Solver instance.
+        """
+        if not self.pre_compiled:
+            self.precompile()
+
+        if solver_type == 'scipy':
+            from .Solver.ScipySolver import ScipySolver
+            solver = ScipySolver()
+            solver.compile(self.get_antimony_model(), **kwargs)
+            return solver
+        elif solver_type == 'roadrunner':
+            from .Solver.RoadrunnerSolver import RoadrunnerSolver
+            solver = RoadrunnerSolver()
+            solver.compile(self.get_sbml_model(), **kwargs)
+            return solver
+        else:
+            raise ValueError(f"Unsupported solver_type: {solver_type}")
     
     def get_antimony_model(self):
         '''

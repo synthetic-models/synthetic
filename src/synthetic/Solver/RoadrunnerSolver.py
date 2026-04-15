@@ -108,6 +108,26 @@ class RoadrunnerSolver(Solver):
 
         return list(self.roadrunner_instance.model.getFloatingSpeciesIds())
 
+    def get_state_defaults(self) -> Dict[str, float]:
+        """
+        Get default initial values for all state variables.
+        """
+        if self.roadrunner_instance is None:
+            raise RuntimeError("RoadRunner instance is not created. Please call compile() first.")
+
+        species = self.get_species_list()
+        return {s: float(self.roadrunner_instance[f'init({s})']) for s in species}
+
+    def get_parameter_defaults(self) -> Dict[str, float]:
+        """
+        Get default values for all parameters.
+        """
+        if self.roadrunner_instance is None:
+            raise RuntimeError("RoadRunner instance is not created. Please call compile() first.")
+
+        params = self.roadrunner_instance.model.getGlobalParameterIds()
+        return {p: float(self.roadrunner_instance[p]) for p in params}
+
 
     def set_parameter_values(self, parameter_values: Dict[str, float]) -> bool:
         """

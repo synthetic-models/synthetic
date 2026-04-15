@@ -189,6 +189,22 @@ class ScipySolver(Solver):
 
         return list(self.species)
 
+    def get_state_defaults(self) -> Dict[str, float]:
+        """
+        Get default initial values for all state variables.
+        """
+        if self.species is None or self.y0 is None:
+            raise RuntimeError("Model instance is not created. Please call compile() first.")
+        return dict(zip(self.species, self.y0))
+
+    def get_parameter_defaults(self) -> Dict[str, float]:
+        """
+        Get default values for all parameters.
+        """
+        if self.parameters is None or self.parameter_values is None:
+            raise RuntimeError("Model instance is not created. Please call compile() first.")
+        return dict(zip(self.parameters, self.parameter_values))
+
     
     def _parse_antimony_model(self, antimony_str: str) -> Tuple[
         List[str], List[str], List[str], List[float], List[float], Dict[str, Dict[str, float]]

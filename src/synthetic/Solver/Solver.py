@@ -66,3 +66,27 @@ class Solver(ABC):
             RuntimeError: If solver not compiled
         """
         raise NotImplementedError("Subclasses must implement get_species_list()")
+
+    def get_state_defaults(self) -> Dict[str, float]:
+        """
+        Get default initial values for all state variables in the compiled model.
+
+        Returns:
+            Dictionary mapping species names to their default initial values.
+
+        Raises:
+            RuntimeError: If solver not compiled
+        """
+        raise NotImplementedError("Subclasses must implement get_state_defaults()")
+
+    def get_parameter_defaults(self) -> Dict[str, float]:
+        """
+        Get default values for all parameters in the compiled model.
+
+        Returns:
+            Dictionary mapping parameter names to their default values.
+
+        Raises:
+            RuntimeError: If solver not compiled
+        """
+        raise NotImplementedError("Subclasses must implement get_parameter_defaults()")

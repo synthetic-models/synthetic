@@ -42,7 +42,7 @@ class VirtualCell:
 
     def __init__(
         self,
-        degree_cascades: List[int],
+        degree_cascades: Optional[List[int]] = None,
         name: str = "VirtualCell",
         random_seed: Optional[int] = None,
         feedback_density: float = 0.5,
@@ -53,12 +53,13 @@ class VirtualCell:
         drug_value: float = 100.0,
         drug_regulation_type: str = "down",
         simulation_end: float = 10000.0,
+        spec: Optional[Union[List[int], 'BaseSpec']] = None,
     ):
         """
         Initialize a virtual cell model.
 
         Args:
-            degree_cascades: List of cascade counts per degree, e.g., [1, 2, 5]
+            degree_cascades: Deprecated. Use 'spec' instead.
             name: Name for the virtual cell
             random_seed: Optional random seed for reproducibility
             feedback_density: Proportion of feedback connections (0-1)
@@ -69,8 +70,23 @@ class VirtualCell:
             drug_value: Active concentration for auto-drug (default: 100.0)
             drug_regulation_type: Regulation type for auto-drug: "up" or "down" (default: "down")
             simulation_end: Simulation end time for make_dataset_drug_response (default: 10000.0)
+            spec: Specification (List[int] for degree cascades or a BaseSpec instance)
         """
-        self._degree_cascades = degree_cascades
+        # Resolve spec
+        actual_spec = spec if spec is not None else degree_cascades
+        if actual_spec is None:
+            raise ValueError("Must provide either 'spec' or 'degree_cascades'")
+
+        from .Specs.BaseSpec import BaseSpec
+        if isinstance(actual_spec, list):
+            self._degree_cascades = actual_spec
+            self._spec_instance = None
+        elif isinstance(actual_spec, BaseSpec):
+            self._degree_cascades = None
+            self._spec_instance = actual_spec
+        else:
+            raise TypeError(f"Unsupported spec type: {type(actual_spec)}")
+
         self._name = name
         self._random_seed = random_seed
         self._feedback_density = feedback_density
@@ -82,10 +98,14 @@ class VirtualCell:
         self._auto_drug_regulation_type = drug_regulation_type
         self._simulation_end = simulation_end
         self._drugs: List[Tuple[Drug, Optional[float]]] = []
-        self._spec: Optional[DegreeInteractionSpec] = None
+        self._spec: Optional[BaseSpec] = None
         self._model: Optional[ModelBuilder] = None
         self._tuner: Optional[KineticParameterTuner] = None
+        self._solver: Optional['Solver'] = None
         self._compiled = False
+
+        if auto_compile:
+            self.compile()
 
     def add_drug(
         self,
@@ -178,15 +198,11 @@ class VirtualCell:
         X_total_multiplier: float = 5.0,
         ki_val: float = 100.0,
         v_max_f_random_range: Tuple[float, float] = (5.0, 10.0),
+        solver_type: str = 'scipy',
+        **solver_kwargs,
     ) -> 'VirtualCell':
         """
         Compile the model (lazy initialization).
-
-        Creates the underlying DegreeInteractionSpec, ModelBuilder, and optionally
-        applies KineticParameterTuner for biologically plausible parameters.
-
-        If auto_drug is enabled, automatically generates a drug targeting degree 1
-        R species and applies its parameters to the model.
 
         Args:
             mean_range_species: Range for initial species values
@@ -197,26 +213,31 @@ class VirtualCell:
             X_total_multiplier: Multiplier for Km_b calculation
             ki_val: Constant Ki value for inhibitors
             v_max_f_random_range: Range for total forward Vmax
+            solver_type: Type of solver ('scipy' or 'roadrunner')
+            **solver_kwargs: Additional arguments for solver
 
         Returns:
             self for method chaining
         """
-        # Generate auto-drug if enabled
-        if self._auto_drug:
+        # 1. Resolve Spec
+        if self._spec_instance is not None:
+            self._spec = self._spec_instance
+        else:
+            self._spec = DegreeInteractionSpec(degree_cascades=self._degree_cascades)
+            self._spec.generate_specifications(
+                random_seed=self._random_seed,
+                feedback_density=self._feedback_density,
+            )
+
+        # 2. Generate auto-drug if enabled (only if spec is DegreeInteractionSpec)
+        if self._auto_drug and self._degree_cascades is not None:
             self._generate_auto_drug()
 
-        # Create specification
-        self._spec = DegreeInteractionSpec(degree_cascades=self._degree_cascades)
-        self._spec.generate_specifications(
-            random_seed=self._random_seed,
-            feedback_density=self._feedback_density,
-        )
-
-        # Add drugs (auto-drug + any manually added)
+        # 3. Add drugs (auto-drug + any manually added)
         for drug, value in self._drugs:
             self._spec.add_drug(drug, value)
 
-        # Generate model
+        # 4. Generate model
         self._model = self._spec.generate_network(
             network_name=self._name,
             mean_range_species=mean_range_species,
@@ -226,7 +247,7 @@ class VirtualCell:
         )
         self._model.precompile()
 
-        # Apply kinetic tuning if requested
+        # 5. Apply kinetic tuning if requested
         if use_kinetic_tuner:
             self._tuner = KineticParameterTuner(self._model, random_seed=self._random_seed)
             updated_params = self._tuner.generate_parameters(
@@ -238,12 +259,15 @@ class VirtualCell:
             for param_name, value in updated_params.items():
                 self._model.set_parameter(param_name, value)
 
-        # Apply auto-drug parameters using regulator_parameter_map
+        # 6. Apply auto-drug parameters (only if auto-drug enabled)
         if self._auto_drug_name:
             regulator_parameter_map = self._model.get_regulator_parameter_map()
             drug_params = regulator_parameter_map.get(self._auto_drug_name, {})
             for param_name in drug_params:
                 self._model.set_parameter(param_name, self._auto_drug_value)
+
+        # 7. Create solver
+        self._solver = self._model.get_solver(solver_type=solver_type, **solver_kwargs)
 
         self._compiled = True
         return self
@@ -260,7 +284,7 @@ class VirtualCell:
         """
         if not self._compiled:
             raise ValueError("Model must be compiled first. Call compile().")
-        return self._model.get_state_variables().keys()
+        return list(self._model.get_state_variables().keys())
 
     def get_initial_values(self, exclude_drugs: bool = True) -> Dict[str, float]:
         """
@@ -341,6 +365,21 @@ class VirtualCell:
             KineticParameterTuner object or None
         """
         return self._tuner
+
+    @property
+    def solver(self) -> 'Solver':
+        """
+        Access to underlying solver.
+
+        Returns the Solver object. Raises ValueError if model
+        has not been compiled.
+
+        Returns:
+            Solver object
+        """
+        if self._solver is None:
+            raise ValueError("Model must be compiled first. Call compile().")
+        return self._solver
 
 
 class _RemoteModelProxy:
@@ -477,7 +516,7 @@ class Builder:
 
     @staticmethod
     def specify(
-        degree_cascades: List[int],
+        degree_cascades: Optional[Union[List[int], 'BaseSpec']] = None,
         name: str = "VirtualCell",
         random_seed: Optional[int] = None,
         feedback_density: float = 1,
@@ -488,12 +527,13 @@ class Builder:
         drug_value: float = 100.0,
         drug_regulation_type: str = "down",
         simulation_end: float = 10000.0,
+        spec: Optional[Union[List[int], 'BaseSpec']] = None,
     ) -> VirtualCell:
         """
         Create a virtual cell specification.
 
         Args:
-            degree_cascades: List of cascade counts per degree, e.g., [1, 2, 5]
+            degree_cascades: Specification (List[int] for degree cascades or a BaseSpec instance)
             name: Name for the virtual cell
             random_seed: Optional random seed for reproducibility
             feedback_density: Proportion of feedback connections (0-1)
@@ -504,6 +544,7 @@ class Builder:
             drug_value: Active concentration for auto-drug (default: 100.0)
             drug_regulation_type: Regulation type for auto-drug: "up" or "down" (default: "down")
             simulation_end: Simulation end time for make_dataset_drug_response (default: 10000.0)
+            spec: Alias for degree_cascades.
 
         Returns:
             VirtualCell instance (compiled if auto_compile=True)
@@ -520,9 +561,8 @@ class Builder:
             drug_value=drug_value,
             drug_regulation_type=drug_regulation_type,
             simulation_end=simulation_end,
+            spec=spec,
         )
-        if auto_compile:
-            vc.compile()
         return vc
 
     @staticmethod
@@ -564,7 +604,7 @@ class Builder:
 
 def make_dataset_drug_response(
     n: int,
-    cell_model: Union[VirtualCell, 'RemoteCell'],
+    cell_model: Union[VirtualCell, RemoteCell, ModelBuilder, 'Solver'],
     target_specie: str = 'Oa',
     perturbation_type: str = 'conserve_rules',
     perturbation_params: Optional[Dict[str, Any]] = None,
@@ -574,7 +614,7 @@ def make_dataset_drug_response(
     simulation_params: Optional[Dict[str, Any]] = None,
     seed: Optional[int] = None,
     param_seed: Optional[int] = None,
-    solver_type: str = 'scipy',
+    solver_type: Optional[str] = None,
     jit: bool = True,
     verbose: bool = False,
     n_cores: int = 1,
@@ -593,115 +633,110 @@ def make_dataset_drug_response(
     The feature matrix X contains species concentrations, and the target
     vector y contains the outcome values.
 
-    Drugs are NOT included in the X features - they affect the simulation
-    but are not part of the feature matrix.
+    This function is the primary hinge between Model Building and Data Generation,
+    supporting VirtualCell, ModelBuilder, and Solver instances.
 
     Args:
         n: Number of samples to generate
-        cell_model: VirtualCell instance (must be compiled)
+        cell_model: A compiled model (VirtualCell, ModelBuilder, or Solver)
         target_specie: Name of the outcome species to use as target (default: 'Oa')
-        perturbation_type: Type of initial value perturbation ('uniform', 'gaussian', 'lognormal', 'lhs')
+        perturbation_type: Type of initial value perturbation
         perturbation_params: Parameters for perturbation distribution
         parameter_values: Dictionary of kinetic parameter values to perturb (optional)
-        param_perturbation_type: Type of kinetic parameter perturbation ('none', 'uniform', 'gaussian', 'lognormal', 'lhs')
+        param_perturbation_type: Type of kinetic parameter perturbation
         param_perturbation_params: Parameters for kinetic parameter perturbation (optional)
         simulation_params: Dictionary with 'start', 'end', 'points' keys
-        seed: Random seed for reproducibility (initial value perturbations)
-        param_seed: Random seed for parameter perturbations (uses seed if not provided)
-        solver_type: Type of solver ('scipy', 'roadrunner', or 'http')
+        seed: Random seed for reproducibility
+        param_seed: Random seed for parameter perturbations
+        solver_type: Optional override for solver type if cell_model is a ModelBuilder
         jit: Whether to use JIT compilation (only for scipy solver)
         verbose: Whether to show progress bar
-        require_all_successful: Whether to require all samples to succeed (default: False)
-        return_details: If True, returns extended data structure with intermediate datasets (default: True)
-        capture_all_species: If True, captures timecourses for all species in returned data.
-        as_pandas: If True (default), returns pandas DataFrame for X and Series for y with feature names.
-                  If False, returns numpy arrays for X and y.
-        return_timecourse: If True, returns dictionary with X, y, timecourse, parameters, and metadata (default: False)
+        n_cores: Number of CPU cores for parallel simulation
+        require_all_successful: Whether to require all samples to succeed
+        return_details: If True, returns extended data structure
+        as_pandas: If True (default), returns pandas DataFrame/Series
+        return_timecourse: If True, returns full simulation data
 
     Returns:
-        If return_timecourse=False:
-            If as_pandas=True: Tuple of (X, y) where X is pandas DataFrame with feature names
-                and y is pandas Series
-            If as_pandas=False: Tuple of (X, y) where X is numpy array (n_samples, n_features)
-                and y is numpy array (n_samples,)
-        If return_timecourse=True: Dictionary with keys:
-            - 'X': Feature matrix (basal state values)
-            - 'y': Target values
-            - 'timecourse': Timecourse simulation data (DataFrame with numpy arrays)
-            - 'parameters': Kinetic parameters dataframe (None if not perturbed)
-            - 'metadata': Dictionary with metadata about generation process
-
-    Raises:
-        ValueError: If cell_model is not compiled or has invalid parameters
+        Dataset in requested format (X, y) or details dictionary
     """
     from .utils.data_generation_helpers import make_data
+    from .ModelBuilder import ModelBuilder
+    from .Solver.Solver import Solver
 
-    if not cell_model._compiled:
-        raise ValueError("cell_model must be compiled. Call cell_model.compile() first.")
+    # 1. Extract essentials from the cell_model
+    if isinstance(cell_model, VirtualCell):
+        if solver_type is not None:
+            solver = cell_model.model.get_solver(solver_type=solver_type, jit=jit)
+        else:
+            solver = cell_model.solver
+        if parameter_values is None:
+            parameter_values = cell_model.model.get_parameters()
+        initial_values = cell_model.get_initial_values(exclude_drugs=True)
+        simulation_end = cell_model._simulation_end
+        spec = cell_model.spec
+    elif isinstance(cell_model, RemoteCell):
+        if not cell_model._compiled:
+            cell_model.compile()
+        solver = cell_model.solver
+        if parameter_values is None:
+            parameter_values = cell_model.model.get_parameters()
+        initial_values = cell_model.get_initial_values(exclude_drugs=True)
+        simulation_end = cell_model._simulation_end
+        spec = None
+    elif isinstance(cell_model, ModelBuilder):
+        if not cell_model.pre_compiled:
+            cell_model.precompile()
+        solver = cell_model.get_solver(solver_type=solver_type or 'scipy', jit=jit)
+        if parameter_values is None:
+            parameter_values = cell_model.get_parameters()
+        initial_values = cell_model.get_state_variables()
+        simulation_end = simulation_params.get('end', 10000) if simulation_params else 10000
+        spec = None  # Spec not available for raw ModelBuilder
+    elif isinstance(cell_model, Solver):
+        solver = cell_model
+        try:
+            if parameter_values is None:
+                parameter_values = solver.get_parameter_defaults()
+            initial_values = solver.get_state_defaults()
+        except NotImplementedError:
+            raise ValueError(
+                "Provided Solver does not support metadata extraction. "
+                "Please provide initial_values and parameter_values explicitly."
+            )
+        simulation_end = simulation_params.get('end', 10000) if simulation_params else 10000
+        spec = None
+    else:
+        raise TypeError(f"Unsupported cell_model type: {type(cell_model)}")
 
-    # Set default simulation parameters (use cell_model's simulation_end)
+    # 2. Set default simulation parameters
     if simulation_params is None:
-        simulation_params = {'start': 0, 'end': cell_model._simulation_end, 'points': 101}
-    
-    # Validate simulation parameters
-    if 'start' not in simulation_params or 'end' not in simulation_params or 'points' not in simulation_params:
-        raise ValueError('simulation_params must contain "start", "end", and "points" keys')
+        simulation_params = {'start': 0, 'end': simulation_end, 'points': 101}
 
-    # Set default perturbation parameters for conserve_rules
+    # 3. Handle perturbation parameters
     if perturbation_params is None:
         perturbation_params = {'shape': 0.5, 'base_shape': 0.01, 'max_shape': 0.5}
-    
-    # Auto-extract parameter values from cell model if not provided
-    if parameter_values is None:
-        parameter_values = cell_model.model.get_parameters()
-    
-    # Set default parameter perturbation parameters
+
     if param_perturbation_params is None:
         param_perturbation_params = {'shape': 0.1}
-    
-    # Pass model_spec to conserve_rules for auto-generation of species ranges
-    # Note: This is optional - if model_spec is not provided, conserve_rules will use
-    # the species_range dictionary if provided, or auto-generate from initial_values
+
     if perturbation_type == 'conserve_rules' and 'model_spec' not in perturbation_params and 'species_range' not in perturbation_params:
-        if hasattr(cell_model, 'spec') and cell_model.spec is not None:
+        if spec is not None:
             perturbation_params = perturbation_params.copy()
-            perturbation_params['model_spec'] = cell_model.spec
+            perturbation_params['model_spec'] = spec
         else:
+            # If no spec, we can't use conserve_rules easily unless user provided species_range
             raise ValueError(
-                "conserve_rules perturbation requires network topology (spec), "
-                "which is not available for remote models. Either:\n"
-                "  - Use a different perturbation_type (e.g., 'lognormal')\n"
-                "  - Provide 'species_range' in perturbation_params explicitly"
+                "conserve_rules perturbation requires a Spec object or explicit 'species_range'. "
+                "Either pass a VirtualCell, or change perturbation_type (e.g. to 'lognormal')."
             )
 
-    # Get initial values (excluding drugs)
-    initial_values = cell_model.get_initial_values(exclude_drugs=True)
-    # Exclude any species with 'a' at the end of their name (outcome species and activated species)
-    # Since they should not be perturbed initially
+    # 4. Prepare initial values for perturbation (exclude activated forms and outcome base)
+    # This logic matches previous implementation for VirtualCell
     initial_values = {k: v for k, v in initial_values.items() if not k.endswith('a')}
-    initial_values.pop('O')
+    initial_values.pop('O', None)
 
-    # Create and compile solver
-    if solver_type == 'scipy':
-        solver = ScipySolver()
-        antimony_str = cell_model.model.get_antimony_model()
-        solver.compile(antimony_str, jit=jit)
-    elif solver_type == 'roadrunner':
-        from .Solver.RoadrunnerSolver import RoadrunnerSolver
-        solver = RoadrunnerSolver()
-        sbml_str = cell_model.model.get_sbml_model()
-        solver.compile(sbml_str)
-    elif solver_type == 'http':
-        if not isinstance(cell_model, RemoteCell):
-            raise ValueError(
-                "solver_type='http' requires a RemoteCell. "
-                "Use RemoteCell(endpoint_url) or Builder.from_endpoint(url)."
-            )
-        solver = cell_model.solver
-    else:
-        raise ValueError(f"Unsupported solver_type: {solver_type}. Use 'scipy', 'roadrunner', or 'http'")
-
-    # Generate feature and target data using make_data
+    # 5. Generate data using make_data
     result = make_data(
         initial_values=initial_values,
         perturbation_type=perturbation_type,
@@ -724,14 +759,14 @@ def make_dataset_drug_response(
     )
 
     if return_details:
-        # Return extended data structure
-        # Use 'features' (perturbed initial values) as X, not 'basal_data' (pre-drug simulation state)
         X = result['features'].copy()
         if exclude_activated_from_features:
             X = X[[col for col in X.columns if not col.endswith('a')]]
         if exclude_outcome_from_features:
             X = X.drop(columns=['O'], errors='ignore')
+
         y = pd.Series(result['targets'].iloc[:, 0].values, name=target_specie, index=result['targets'].index, dtype=float)
+
         if not as_pandas:
             X = X.values.astype(np.float64)
             y = y.values.ravel().astype(np.float64)
