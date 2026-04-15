@@ -53,6 +53,28 @@ X, y = make_dataset_drug_response(
 )
 ```
 
+## Spec-Model-Solver Abstraction
+
+For more transparency and control, you can use the multi-layer API directly. This demonstrates how Synthetic separates network topology from simulation:
+
+```python
+from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
+from synthetic.Solver.ScipySolver import ScipySolver
+
+# 1. Spec Layer: Define the network topology
+spec = DegreeInteractionSpec(degree_cascades=[1, 2, 5])
+spec.generate_specifications(feedback_density=0.5)
+
+# 2. Model Layer: Generate the concrete ODE system
+model = spec.generate_network("MyModel")
+model.precompile()
+
+# 3. Solver Layer: Simulate the model
+solver = ScipySolver()
+solver.compile(model.get_antimony_model())
+results = solver.simulate(start=0, stop=1000, step=100)
+```
+
 ## Next Steps
 
 - [Network & Drug Design](network_and_drug_design.md) - Understand network topology and drug mechanisms

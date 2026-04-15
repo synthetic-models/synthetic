@@ -7,10 +7,13 @@ Export Synthetic models to standard formats for use in other tools.
 SBML (Systems Biology Markup Language) is the standard for sharing biochemical models:
 
 ```python
-from synthetic import Builder
+from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
 
-vc = Builder.specify(degree_cascades=[2, 5, 10], random_seed=42)
-model = vc.model
+# Generate a model from a specification
+spec = DegreeInteractionSpec(degree_cascades=[2, 5, 10])
+spec.generate_specifications()
+model = spec.generate_network("ExportModel")
+model.precompile()
 
 # Save to file
 model.save_sbml_model_as('synthetic_model.sbml')

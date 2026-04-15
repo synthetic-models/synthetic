@@ -34,15 +34,19 @@ For custom simulation workflows, use solvers directly.
     Uses `scipy.integrate.odeint` with optional JIT compilation:
 
     ```python
-    from synthetic import Builder
+    from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
     from synthetic.Solver.ScipySolver import ScipySolver
 
-    vc = Builder.specify(degree_cascades=[2, 3, 4], random_seed=42)
+    # 1. Generate a model from a specification
+    spec = DegreeInteractionSpec(degree_cascades=[2, 3, 4])
+    spec.generate_specifications()
+    model = spec.generate_network("MyModel")
+    model.precompile()
 
-    # Get Antimony model string
-    antimony = vc.model.get_antimony_model()
+    # 2. Get Antimony model string
+    antimony = model.get_antimony_model()
 
-    # Compile and simulate
+    # 3. Compile and simulate
     solver = ScipySolver()
     solver.compile(antimony, jit=True)  # Enable JIT for faster execution
     results = solver.simulate(start=0, stop=10000, step=50)
@@ -60,9 +64,10 @@ For custom simulation workflows, use solvers directly.
     ```python
     from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
 
-    # Get SBML model string
-    sbml = vc.model.get_sbml_model()
+    # 1. Get SBML model string from the same model object
+    sbml = model.get_sbml_model()
 
+    # 2. Compile and simulate
     solver = RoadrunnerSolver()
     solver.compile(sbml)
     results = solver.simulate(start=0, stop=10000, step=50)
@@ -87,22 +92,25 @@ Simulate and visualize species dynamics over time. The vertical dashed line mark
 ![Timecourse simulation with ScipySolver](images/timecourse_scipy.png)
 
 ```python
-from synthetic import Builder
+from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
 from synthetic.Solver.ScipySolver import ScipySolver
 import matplotlib.pyplot as plt
 
-vc = Builder.specify(degree_cascades=[2, 3, 4], random_seed=42)
+# 1. Create model
+spec = DegreeInteractionSpec(degree_cascades=[2, 3, 4])
+spec.generate_specifications()
+model = spec.generate_network("MyModel")
+model.precompile()
 
-antimony = vc.model.get_antimony_model()
+# 2. Simulate
 solver = ScipySolver()
-solver.compile(antimony, jit=False)
+solver.compile(model.get_antimony_model(), jit=False)
 timecourse = solver.simulate(start=0, stop=10000, step=50)
 
-# Plot outcome dynamics
+# 3. Plot outcome dynamics
 fig, ax = plt.subplots()
 ax.plot(timecourse['time'], timecourse['O'], label='O (inactive)')
 ax.plot(timecourse['time'], timecourse['Oa'], label='Oa (active)')
-ax.axvline(x=5000, color='gray', linestyle='--', label='Drug onset')
 ax.set_xlabel('Time')
 ax.set_ylabel('Concentration')
 ax.legend()

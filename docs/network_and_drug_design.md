@@ -5,7 +5,15 @@
 The `degree_cascades` parameter defines the hierarchical structure of the signaling network. Each element specifies the number of parallel cascades at that degree:
 
 ```python
-vc = Builder.specify(degree_cascades=[3, 6, 15])
+from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
+
+# 1. Spec Layer: Define the topology
+spec = DegreeInteractionSpec(degree_cascades=[3, 6, 15])
+spec.generate_specifications()
+
+# 2. Model Layer: Generate the concrete ODE system
+model = spec.generate_network("MyModel")
+model.precompile()
 ```
 
 This creates:
@@ -52,134 +60,104 @@ Green edges indicate stimulation, red edges indicate inhibition, and dashed purp
 The `feedback_density` parameter controls the proportion of possible feedback connections in the network:
 
 ```python
-vc = Builder.specify(
-    degree_cascades=[3, 6, 15],
+from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
+
+spec = DegreeInteractionSpec(degree_cascades=[3, 6, 15])
+spec.generate_specifications(
     feedback_density=0.5,  # 50% of possible feedback connections
 )
+
+# Generate model
+model = spec.generate_network("FeedbackModel")
+model.precompile()
 ```
 
 - `feedback_density=0`: No feedback (purely feed-forward hierarchy)
 - `feedback_density=1`: Maximum feedback connections
 - Feedback loops connect species across different degrees, creating more realistic network dynamics
 
-## Building with VirtualCell
+## Building with Specs and Models
 
-### Auto-Compile (Default)
+The recommended workflow for designing networks is to use the **Spec → Model** abstraction. This separates the network topology from the concrete biochemical implementation.
 
-The simplest pattern uses `Builder.specify()` which auto-compiles the model:
+### 1. Define the Specification
+
+The `Spec` layer defines what species exist and how they are connected.
+
+```python
+from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
+
+spec = DegreeInteractionSpec(degree_cascades=[1, 2, 5])
+spec.generate_specifications(random_seed=42, feedback_density=0.5)
+```
+
+### 2. Generate the Model
+
+The `ModelBuilder` layer translates the specification into a system of Ordinary Differential Equations (ODEs).
+
+```python
+# Generate the ODE model
+model = spec.generate_network("MyModel", random_seed=42)
+
+# Precompile to finalize parameters and state variables
+model.precompile()
+```
+
+### 3. High-Level Automation (VirtualCell)
+
+For automated workflows like data generation, the `VirtualCell` class (via `Builder.specify`) wraps this entire process:
 
 ```python
 from synthetic import Builder
 
-vc = Builder.specify(
-    degree_cascades=[1, 2, 5],
-    random_seed=42,
-    feedback_density=0.5,
-)
-# Model is ready to use immediately
-```
-
-### Manual Control
-
-For custom drug configurations, disable auto-compile and add drugs manually:
-
-```python
-from synthetic import Builder
-
-vc = Builder.specify(
-    degree_cascades=[5, 10, 15],
-    auto_drug=False,
-    auto_compile=False,
-)
-
-# Add drugs, then compile
-vc.add_drug(name="DrugA", ...)
-vc.compile()
-```
-
-### Compile Options
-
-The `compile()` method accepts parameters for initial conditions and kinetic tuning:
-
-```python
-vc.compile(
-    mean_range_species=(50, 150),           # Initial concentration range
-    rangeScale_params=(0.8, 1.2),           # Parameter scaling range
-    rangeMultiplier_params=(0.9, 1.1),      # Additional parameter variation
-    use_kinetic_tuner=True,                 # Enable kinetic parameter tuning
-    active_percentage_range=(0.3, 0.7),     # Target 30-70% active states
-)
+# Automates Spec -> ModelBuilder -> Kinetic Tuning
+vc = Builder.specify(degree_cascades=[1, 2, 5])
 ```
 
 ## Adding Drugs
 
-### Auto-Drug (Default)
+### Manual Drug Addition (Spec Layer)
 
-By default, `Builder.specify()` creates a drug targeting all degree 1 receptor species:
+Add drugs to your specification before generating the model:
 
 ```python
-vc = Builder.specify(degree_cascades=[3, 6, 15])
-# Auto-drug "D" targets R1_1, R1_2, R1_3 with down-regulation
+from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
+from synthetic.Specs.Drug import Drug
+
+spec = DegreeInteractionSpec(degree_cascades=[1, 2, 5])
+spec.generate_specifications()
+
+# Create a drug targeting degree 1 receptors
+drug = Drug(
+    name="DrugX",
+    start_time=500.0,
+    regulation=["R1_1", "R1_2"],
+    regulation_type=["down", "down"]
+)
+
+# Add drug to spec (with its concentration value)
+spec.add_drug(drug, value=100.0)
+
+# Generate and precompile the model
+model = spec.generate_network("DruggedModel")
+model.precompile()
 ```
 
-Customize the auto-drug parameters:
+### Automatic Drug Generation (VirtualCell Layer)
+
+The high-level `VirtualCell` API can automate drug creation:
 
 ```python
+# Auto-generates a drug "D" targeting all degree 1 receptors
 vc = Builder.specify(
-    degree_cascades=[3, 6, 15],
+    degree_cascades=[1, 2, 5],
+    auto_drug=True,
     drug_name="Inhibitor",
     drug_start_time=5000.0,
     drug_value=100.0,
     drug_regulation_type="down",
 )
 ```
-
-### Manual Drug Addition
-
-Add drugs manually by setting `auto_drug=False`:
-
-```python
-vc = Builder.specify(
-    degree_cascades=[1, 2, 5],
-    auto_drug=False,
-    auto_compile=False,
-)
-
-vc.add_drug(
-    name="DrugX",
-    start_time=500.0,
-    default_value=0.0,
-    regulation=["R1_1", "R1_2"],
-    regulation_type=["down", "down"],
-    value=100.0,
-)
-
-vc.compile()
-```
-
-### Method Chaining
-
-`add_drug()` returns `self`, enabling method chaining:
-
-!!! tip "Chain multiple drugs fluently"
-
-    ```python
-    vc = Builder.specify([5, 10, 15], auto_drug=False, auto_compile=False)
-
-    vc.add_drug(
-        name="Drug_A",
-        start_time=5000.0,
-        regulation=["R1_1", "R1_2"],
-        regulation_type=["down", "down"],
-        value=100.0,
-    ).add_drug(
-        name="Drug_B",
-        start_time=5000.0,
-        regulation=["R1_3", "R1_4"],
-        regulation_type=["down", "down"],
-        value=100.0,
-    ).compile()
-    ```
 
 ### Inspecting Drugs
 
@@ -201,37 +179,24 @@ for drug in drugs:
 
 ## Combination Therapy
 
-Add multiple drugs targeting different pathways to model combination therapy:
+Add multiple drugs to your specification to model combination therapy:
 
 ```python
-from synthetic import Builder, make_dataset_drug_response
+from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
+from synthetic.Specs.Drug import Drug
 
-vc = Builder.specify([5, 10, 15], auto_drug=False, auto_compile=False)
+spec = DegreeInteractionSpec(degree_cascades=[1, 2, 5])
+spec.generate_specifications()
 
 # Drug A targets pathway 1
-vc.add_drug(
-    name="Drug_A",
-    start_time=5000.0,
-    default_value=0.0,
-    regulation=["R1_1", "R1_2"],
-    regulation_type=["down", "down"],
-    value=100.0,
-)
+spec.add_drug(Drug("DrugA", regulation=["R1_1"], regulation_type=["down"]), value=100.0)
 
 # Drug B targets pathway 2
-vc.add_drug(
-    name="Drug_B",
-    start_time=5000.0,
-    default_value=0.0,
-    regulation=["R1_3", "R1_4"],
-    regulation_type=["down", "down"],
-    value=100.0,
-)
+spec.add_drug(Drug("DrugB", regulation=["R1_2"], regulation_type=["down"]), value=100.0)
 
-vc.compile()
-
-# Generate dataset reflecting combined drug effects
-X, y = make_dataset_drug_response(n=500, cell_model=vc, target_specie='Oa')
+# Generate the model
+model = spec.generate_network("CombinationModel")
+model.precompile()
 ```
 
 This enables you to:
@@ -241,29 +206,31 @@ This enables you to:
 - Compare single-drug vs. combination therapies
 - Validate combination therapy prediction algorithms
 
-## Accessing the Model
+## Accessing the Model Layers
 
-After compilation, access the underlying components:
+After using a specification to generate a model, you can access the underlying abstractions:
 
 ```python
-vc = Builder.specify(degree_cascades=[1, 2, 5])
+from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
 
-# DegreeInteractionSpec - network specification
-spec = vc.spec
+spec = DegreeInteractionSpec(degree_cascades=[1, 2, 5])
+spec.generate_specifications()
+model = spec.generate_network("MyModel")
+model.precompile()
+
+# 1. Spec Layer - The network topology
 print(spec.species_list)
 
-# ModelBuilder - the compiled ODE model
-model = vc.model
+# 2. Model Layer - The compiled ODE system
 print(f"Species: {len(model.get_state_variables())}")
 print(f"Parameters: {len(model.get_parameters())}")
 
-# KineticParameterTuner - if kinetic tuning was used
-tuner = vc.tuner
-if tuner is not None:
-    targets = tuner.get_target_concentrations()
-    for species, concentration in targets.items():
-        print(f"{species}: {concentration:.3f}")
+# 3. Tuning (Optional) - Biologically plausible parameters
+from synthetic.utils.kinetic_tuner import KineticParameterTuner
+tuner = KineticParameterTuner(model)
+# ... apply tuning ...
 ```
+
 
 ---
 
