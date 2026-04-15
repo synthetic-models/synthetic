@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Synthetic (aka ModelBuilder) is a library for generating virtual cell data using ODE models based on biochemical laws common in cancer cell signalling networks. It creates datasets compatible with scikit-learn's `make_regression` format.
+Synthetic has two primary objectives:
+
+1. **ODE Model Building** — Construct ODE models using high-level abstractions and syntax. Define network topologies, reaction archetypes, and regulatory interactions without writing equations by hand. The three-layer architecture (Spec → ModelBuilder → Solver) lets you go from a specification to a compiled, simulatable model in a few lines.
+
+2. **Data Generation** — Treat ODE models as ground-truth systems and generate `(X, y)` datasets compatible with scikit-learn's `make_regression` format. Perturb initial conditions or parameters, simulate the model, and collect feature–target pairs for benchmarking predictive modeling workflows.
+
+The biochemical laws and cancer cell signalling networks that Synthetic uses are the domain context for these two objectives — they define what the ODE models describe and what the generated data represents.
 
 ## Build and Test Commands
 
