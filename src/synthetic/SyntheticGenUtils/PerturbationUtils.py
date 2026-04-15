@@ -168,14 +168,14 @@ def get_all_species(model_spec=None, initial_values: Dict = None) -> List[str]:
     Get list of all species from model specification or initial values.
     
     Args:
-        model_spec: ModelSpecification object
+        model_spec: BaseSpec object
         initial_values: Dictionary of initial values
         
     Returns:
         List of species names
     """
     if model_spec is not None:
-        return model_spec.A_species + model_spec.B_species
+        return model_spec.species_list
     elif initial_values is not None:
         return list(initial_values.keys())
     else:

@@ -28,7 +28,7 @@ def resolve_species_range(
     while outer species have higher variance (higher shape).
     
     Args:
-        model_spec: ModelSpecification object (preferred method)
+        model_spec: BaseSpec object (preferred method)
         initial_values: Dictionary of initial values as fallback
         base_shape: Minimum shape parameter (most conserved species, default: 0.01)
         max_shape: Maximum shape parameter (least conserved species, default: 0.5)
@@ -87,10 +87,10 @@ def resolve_species_range(
 def _get_species_from_model_spec(model_spec) -> List[str]:
     """
     Extract list of species from model specification.
-    
+
     Args:
-        model_spec: ModelSpecification object
-    
+        model_spec: BaseSpec object
+
     Returns:
         List of species names
     """
