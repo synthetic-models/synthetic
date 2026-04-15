@@ -60,11 +60,12 @@ from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
 from synthetic import Builder, make_dataset_drug_response
 
 # 1. Spec & Model Layers: Define topology and automate ODE generation
-# Builder.specify(degree_cascades=...) handles the Spec -> Model conversion
-vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
+# Builder.specify(spec=...) is spec-agnostic and accepts any BaseSpec or ModelBuilder
+spec = DegreeInteractionSpec(degree_cascades=[1, 2, 5])
+vc = Builder.specify(spec=spec, random_seed=42)
 
 # 2. Solver Layer: Generate a scikit-learn compatible dataset
-# Treats the ODE model as ground-truth for batch simulations
+# Supports VirtualCell, ModelBuilder, or even compiled Solvers directly
 X, y = make_dataset_drug_response(
     n=1000, 
     cell_model=vc, 

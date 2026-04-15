@@ -378,6 +378,13 @@ class DegreeInteractionSpec(MichaelisNetworkSpec):
 
         return self.degree_species.get(1, {}).get('R', [])
 
+    def get_outcome_species(self) -> List[str]:
+        """
+        Get outcome species for DegreeInteractionSpec.
+        Returns ['O'].
+        """
+        return ['O']
+
     def __str__(self) -> str:
         """String representation of the specification."""
         return (f"DegreeInteractionSpec(degrees={len(self.degree_cascades)}, "

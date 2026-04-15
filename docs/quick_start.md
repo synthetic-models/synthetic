@@ -7,16 +7,19 @@ Generate a synthetic drug response dataset in three lines:
 ```python
 from synthetic import Builder, make_dataset_drug_response
 
+# 1. Spec & Model Layers: Define topology and automate ODE generation
 vc = Builder.specify(degree_cascades=[3, 5], random_seed=42)
+
+# 2. Solver Layer: Generate scikit-learn compatible dataset
 X, y = make_dataset_drug_response(n=1000, cell_model=vc, target_specie='Oa')
 
 print(f"Feature matrix shape: {X.shape}")  # (1000, n_features)
 print(f"Target vector shape: {y.shape}")    # (1000,)
 ```
 
-1. **`Builder.specify([3, 5])`** creates a virtual cell with a hierarchical signaling network. The `[3, 5]` argument defines the network topology: 3 cascades at degree 1 (closest to the drug target) and 5 cascades at degree 2 (downstream effectors). A drug is auto-generated that targets the degree 1 receptor species.
+1. **`Builder.specify()`** creates a virtual cell. You can pass a `degree_cascades` list (e.g., `[3, 5]`) or a pre-configured `Spec` object. This handles the conversion from a high-level network topology to a concrete system of Ordinary Differential Equations (ODEs).
 
-2. **`make_dataset_drug_response(1000, ...)`** generates 1000 samples by perturbing initial conditions and kinetic parameters, simulating the ODE model with each perturbation, and extracting the outcome species `Oa` (activated outcome) as the target. The result is a scikit-learn-compatible feature matrix `X` (species concentrations) and target vector `y` (drug response).
+2. **`make_dataset_drug_response(1000, ...)`** generates 1000 samples by perturbing initial conditions and kinetic parameters, simulating the ODE model with each perturbation, and extracting the outcome species `Oa` (activated outcome) as the target.
 
 ## Customizing Your Model
 

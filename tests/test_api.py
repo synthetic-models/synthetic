@@ -597,3 +597,35 @@ class TestGenericSpecs:
         drugs = vc.list_drugs()
         assert drugs[0]['name'] == "MyDrug"
         assert drugs[0]['targets'] == ["S1", "S2"]
+
+    def test_custom_spec_naming_convention(self):
+        """Test that custom naming conventions in Spec are respected by make_dataset_drug_response."""
+        class CustomNamingSpec(MichaelisNetworkSpec):
+            def get_outcome_species(self):
+                return ["TARGET"]
+            def is_activated_form(self, species_name):
+                # MichaelisNetworkSpec still appends 'a' in generate_network
+                # but we want to exclude our custom ACT_ prefix too
+                return species_name.startswith("ACT_") or species_name.endswith("a")
+
+        spec = CustomNamingSpec()
+        spec.add_species("S1")
+        spec.add_species("TARGET")
+        # MichaelisNetworkSpec will create S1a, TARGETa, and ACT_S1a
+        spec.add_species("ACT_S1")
+
+        # Mock compile and other needed state
+        vc = VirtualCell(spec=spec, auto_drug=False)
+        vc.compile()
+
+        # Check features/targets filtering in make_dataset_drug_response
+        X, y = make_dataset_drug_response(n=5, cell_model=vc, target_specie='ACT_S1')
+
+        # Features should include S1, but exclude TARGET, S1a, TARGETa, ACT_S1, and ACT_S1a
+        assert "S1" in X.columns
+        assert "TARGET" not in X.columns
+        assert "S1a" not in X.columns
+        assert "TARGETa" not in X.columns
+        assert "ACT_S1" not in X.columns
+        assert "ACT_S1a" not in X.columns
+        assert X.shape == (5, 1)

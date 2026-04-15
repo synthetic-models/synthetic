@@ -43,3 +43,17 @@ class BaseSpec(ABC):
         Get target species for an auto-generated drug.
         """
         pass
+
+    def get_outcome_species(self) -> List[str]:
+        """
+        Get species names that represent outcomes/targets for analysis.
+        These are typically excluded from features.
+        """
+        return []
+
+    def is_activated_form(self, species_name: str) -> bool:
+        """
+        Check if a species name represents an activated form of another species.
+        These are typically excluded from initial value perturbations.
+        """
+        return species_name.endswith('a')

@@ -299,7 +299,14 @@ class VirtualCell:
         """
         if not self._compiled:
             raise ValueError("Model must be compiled first. Call compile().")
-        return list(self._model.get_state_variables().keys())
+
+        species = list(self._model.get_state_variables().keys())
+
+        if exclude_drugs:
+            drug_names = [d[0].name for d in self._drugs]
+            species = [s for s in species if s not in drug_names]
+
+        return species
 
     def get_initial_values(self, exclude_drugs: bool = True) -> Dict[str, float]:
         """
@@ -779,9 +786,14 @@ def make_dataset_drug_response(
             )
 
     # 4. Prepare initial values for perturbation (exclude activated forms and outcome base)
-    # This logic matches previous implementation for VirtualCell
-    initial_values = {k: v for k, v in initial_values.items() if not k.endswith('a')}
-    initial_values.pop('O', None)
+    if spec is not None:
+        initial_values = {k: v for k, v in initial_values.items() if not spec.is_activated_form(k)}
+        for outcome in spec.get_outcome_species():
+            initial_values.pop(outcome, None)
+    else:
+        # Fallback to defaults if no spec (matches legacy DegreeInteractionSpec)
+        initial_values = {k: v for k, v in initial_values.items() if not k.endswith('a')}
+        initial_values.pop('O', None)
 
     # 5. Generate data using make_data
     result = make_data(
@@ -808,9 +820,17 @@ def make_dataset_drug_response(
     if return_details:
         X = result['features'].copy()
         if exclude_activated_from_features:
-            X = X[[col for col in X.columns if not col.endswith('a')]]
+            if spec is not None:
+                X = X[[col for col in X.columns if not spec.is_activated_form(col)]]
+            else:
+                X = X[[col for col in X.columns if not col.endswith('a')]]
+
         if exclude_outcome_from_features:
-            X = X.drop(columns=['O'], errors='ignore')
+            if spec is not None:
+                for outcome in spec.get_outcome_species():
+                    X = X.drop(columns=[outcome], errors='ignore')
+            else:
+                X = X.drop(columns=['O'], errors='ignore')
 
         y = pd.Series(result['targets'].iloc[:, 0].values, name=target_specie, index=result['targets'].index, dtype=float)
 

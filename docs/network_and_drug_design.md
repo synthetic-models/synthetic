@@ -232,6 +232,58 @@ tuner = KineticParameterTuner(model)
 ```
 
 
+## Custom Specifications
+
+You can create your own network topologies by inheriting from `BaseSpec`. This allows you to define custom reaction schemes while still using Synthetic's high-level simulation and data generation tools.
+
+### Implementing a Custom Spec
+
+When implementing a `BaseSpec`, you must define how to generate specifications, the network, and drug targets.
+
+```python
+from synthetic.Specs.BaseSpec import BaseSpec
+from synthetic.ModelBuilder import ModelBuilder
+from typing import List
+
+class MyCustomSpec(BaseSpec):
+    def generate_specifications(self, num_nodes=5, **kwargs):
+        self.species_list = [f"Node{i}" for i in range(num_nodes)]
+        # Define your regulations here...
+        
+    def generate_network(self, network_name: str, **kwargs) -> ModelBuilder:
+        model = ModelBuilder(network_name)
+        # Add reactions to your model based on the specification...
+        return model
+
+    def get_auto_drug_targets(self) -> List[str]:
+        # Return species that should be targeted by auto-generated drugs
+        return ["Node0"]
+
+    def get_outcome_species(self) -> List[str]:
+        # Return species that represent the "target" or "output" of the system
+        # These are typically excluded from features during data generation
+        return ["Node4"]
+
+    def is_activated_form(self, species_name: str) -> bool:
+        # Define the naming convention for activated species
+        # (Default is species ending in 'a')
+        return species_name.endswith("_active")
+```
+
+### Using Custom Specs with VirtualCell
+
+Once defined, your custom spec can be passed directly to the high-level API:
+
+```python
+from synthetic import Builder
+
+spec = MyCustomSpec()
+spec.generate_specifications(num_nodes=10)
+
+# Builder.specify accepts any BaseSpec instance
+vc = Builder.specify(spec=spec, name="CustomCell")
+```
+
 ---
 
 **See also:**

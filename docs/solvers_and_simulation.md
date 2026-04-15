@@ -1,28 +1,28 @@
 # Solvers & Simulation
 
-## Solver Overview
-
-Synthetic provides two built-in solver backends for ODE simulation (plus an HTTP solver for remote workflows — see [HTTP Solver](advanced_features.md#http-solver-for-remote-simulation)):
-
-| Solver | Input Format | Features | Use Case |
-|--------|-------------|----------|----------|
-| **ScipySolver** | Antimony | JIT compilation via numba, fast batch | Default, parameter sweeps |
-| **RoadrunnerSolver** | SBML | Full SBML support, robust | Complex models, single simulations |
-
 ## Using the Built-in Solver
 
-`make_dataset_drug_response` handles solver creation internally. Choose the backend with `solver_type`:
+`make_dataset_drug_response` handles solver creation internally. Choose the backend with `solver_type`. 
+
+Synthetic supports several entry points for data generation:
+- **`VirtualCell`**: High-level abstraction containing spec and model.
+- **`ModelBuilder`**: A concrete ODE system (will automatically create a solver).
+- **`Solver`**: A pre-compiled solver (e.g., `ScipySolver` or `RoadrunnerSolver`).
 
 ```python
 from synthetic import Builder, make_dataset_drug_response
 
 vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
 
-# Default: ScipySolver (fast, with JIT)
-X, y = make_dataset_drug_response(n=100, cell_model=vc, solver_type='scipy', jit=True)
+# Option 1: Use VirtualCell (Default)
+X, y = make_dataset_drug_response(n=100, cell_model=vc)
 
-# Alternative: RoadrunnerSolver
-X, y = make_dataset_drug_response(n=100, cell_model=vc, solver_type='roadrunner')
+# Option 2: Use ModelBuilder
+X, y = make_dataset_drug_response(n=100, cell_model=vc.model)
+
+# Option 3: Use a pre-compiled Solver directly
+solver = vc.model.get_solver(solver_type='scipy', jit=True)
+X, y = make_dataset_drug_response(n=100, cell_model=solver)
 ```
 
 ## Direct Solver Usage
@@ -87,9 +87,7 @@ Both solvers return a pandas DataFrame with a `time` column and one column per s
 
 ## Timecourse Simulation
 
-Simulate and visualize species dynamics over time. The vertical dashed line marks drug onset:
-
-![Timecourse simulation with ScipySolver](images/timecourse_scipy.png)
+Simulate and visualize species dynamics over time.
 
 ```python
 from synthetic.Specs.DegreeInteractionSpec import DegreeInteractionSpec
@@ -116,45 +114,6 @@ ax.set_ylabel('Concentration')
 ax.legend()
 plt.show()
 ```
-
-### Comparing Solvers
-
-Run the same simulation with both solvers to compare results. Both produce identical dynamics:
-
-![Timecourse simulation with RoadrunnerSolver](images/timecourse_roadrunner.png)
-
-=== "ScipySolver"
-
-    ```python
-    from synthetic.Solver.ScipySolver import ScipySolver
-
-    solver_scipy = ScipySolver()
-    solver_scipy.compile(vc.model.get_antimony_model(), jit=False)
-    tc_scipy = solver_scipy.simulate(start=0, stop=10000, step=50)
-    print(f"ScipySolver Oa: {tc_scipy['Oa'].iloc[-1]:.4f}")
-    ```
-
-=== "RoadrunnerSolver"
-
-    ```python
-    from synthetic.Solver.RoadrunnerSolver import RoadrunnerSolver
-
-    solver_rr = RoadrunnerSolver()
-    solver_rr.compile(vc.model.get_sbml_model())
-    tc_rr = solver_rr.simulate(start=0, stop=10000, step=50)
-    print(f"RoadrunnerSolver Oa: {tc_rr['Oa'].iloc[-1]:.4f}")
-    ```
-
-## Solver Selection Guide
-
-| Scenario | Recommended Solver |
-|----------|-------------------|
-| Default dataset generation | ScipySolver (`solver_type='scipy'`) |
-| Batch simulations (1000+ samples) | ScipySolver with `jit=True` |
-| Complex SBML models | RoadrunnerSolver |
-| Need robust single simulations | RoadrunnerSolver |
-| Remote/distributed computing | HTTPSolver (see [HTTP Solver](advanced_features.md#http-solver-for-remote-simulation)) |
-| Parameter estimation loops | ScipySolver with `jit=False` |
 
 !!! info "JIT warmup"
     The first call to `ScipySolver.simulate()` with `jit=True` compiles the ODE function via Numba, which can take several seconds. Subsequent simulations are fast. This is a one-time cost per model.
