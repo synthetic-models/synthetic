@@ -61,7 +61,7 @@ Core classes for building biochemical reaction networks from scratch. See [Model
 
 ## Specifications
 
-Classes for defining network topology, regulations, and drug interactions. See [Network & Drug Design](network_and_drug_design.md) for details.
+Classes for defining network topology, regulations, and drug interactions. See [Model Building](model_building.md#level-2-the-spec-classes) for details.
 
 ::: synthetic.Specs.BaseSpec.BaseSpec
     options:
@@ -91,7 +91,7 @@ Classes for defining network topology, regulations, and drug interactions. See [
 
 ## Solvers
 
-ODE simulation backends. Both concrete solvers inherit from the abstract `Solver` base class, which defines the `compile()` and `simulate()` interface. See [Solvers & Simulation](solvers_and_simulation.md) for usage.
+ODE simulation backends. Both concrete solvers inherit from the abstract `Solver` base class, which defines the `compile()` and `simulate()` interface. See [Solving ODEs](solving_odes.md) for usage.
 
 ::: synthetic.Solver.ScipySolver.ScipySolver
     options:
@@ -113,7 +113,7 @@ ODE simulation backends. Both concrete solvers inherit from the abstract `Solver
 
 ## Utilities
 
-Helpers for parameter tuning, feature generation, and dataset creation. See [Data Generation](data_generation.md), [Advanced Features](advanced_features.md), and [Benchmarking](benchmarking.md) for context.
+Helpers for parameter tuning, feature generation, and dataset creation. See [Obtaining Data](obtaining_data.md), [Advanced](advanced.md), and [Use Cases](use_cases.md) for context.
 
 ::: synthetic.utils.kinetic_tuner.KineticParameterTuner
     options:

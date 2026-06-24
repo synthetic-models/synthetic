@@ -69,7 +69,7 @@
     - `&` — main reactants/products and regulators (e.g., `&S`, `&P`, `&A0`)
     - `?` — reverse-only regulators used in reversible reactions (e.g., `?A0`)
 
-    When a `Reaction` is created, these placeholders are replaced with actual species names. See [Model Building](model_building.md#layer-1-reactionarchtype-the-template) for details.
+    When a `Reaction` is created, these placeholders are replaced with actual species names. See [Model Building](model_building.md) for details.
 
 ## Simulation
 
@@ -81,7 +81,7 @@
     2. **Simulation too short** — the network may not have reached steady state. Increase `stop` time.
     3. **Initial conditions are zero** — check that species have non-zero initial concentrations.
 
-    See [Kinetic Parameter Tuning](advanced_features.md#kinetic-parameter-tuning) for the tuning guide.
+    See [Kinetic Parameter Tuning](advanced.md#kinetic-parameter-tuning) for the tuning guide.
 
 ??? question "Which solver should I use?"
 
@@ -93,7 +93,7 @@
     | Single robust simulations | `RoadrunnerSolver` |
     | Remote/distributed computing | `HTTPSolver` |
 
-    See [Solver Selection Guide](solvers_and_simulation.md#solver-selection-guide) for the full comparison.
+    See [Solving ODEs](solving_odes.md#choosing-a-solver) for the full comparison.
 
 ??? question "Why is JIT compilation slow on first run?"
 
@@ -111,7 +111,7 @@
     solver.compile(model.get_sbml_model())
     ```
 
-    `ScipySolver` accepts Antimony. See [Solvers & Simulation](solvers_and_simulation.md) for both approaches.
+    `ScipySolver` accepts Antimony. See [Solving ODEs](solving_odes.md) for both approaches.
 
 ## Data Generation
 
@@ -148,7 +148,7 @@
     )
     ```
 
-    See [Perturbation Strategies](data_generation.md#perturbation-strategies) for all available types.
+    See [Obtaining Data](obtaining_data.md#what-gets-perturbed) for all available types.
 
 ??? question "Why is my dataset success rate low?"
 
