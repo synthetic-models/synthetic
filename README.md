@@ -46,7 +46,7 @@ The high-level API provides a simple interface for creating virtual cell models 
 from synthetic import Builder, make_dataset_drug_response
 
 # Create a virtual cell model (auto-compiles with default settings)
-vc = Builder.specify(degree_cascades=[1, 2, 5], random_seed=42)
+vc = Builder.specify(degree_cascades=[3, 5], random_seed=42)
 
 # Generate a sklearn-compatible dataset
 X, y = make_dataset_drug_response(n=1000, cell_model=vc, target_specie='Oa')
